@@ -137,7 +137,14 @@
   };
   window.listChantierDocsC121=archived=>{
     const z=document.getElementById('c121-doc-list');if(!z)return;
-    z.innerHTML=docs.filter(x=>!!x.archive===!!archived).map(x=>'<div class="c121-doc"><div><strong>'+esc(x.titre)+'</strong><div class="status-line">'+(x.contenu||'').length+' caractères · '+esc(x.updated_at?.slice(0,10)||'')+'</div></div><button class="btn-secondary" onclick="editChantierDocC121(\''+x.id+'\')">Ouvrir</button></div>').join('')||'<p class="empty">Aucun document ici.</p>';
+    z.innerHTML=docs.filter(x=>!!x.archive===!!archived).map(x=>'<div class="c121-doc"><div><strong>'+esc(x.titre)+'</strong><div class="status-line">'+(x.contenu||'').length+' caractères · '+esc(x.updated_at?.slice(0,10)||'')+'</div></div><button class="btn-secondary" onclick="viewChantierDocC121(\''+x.id+'\')">👁️ Consulter</button></div>').join('')||'<p class="empty">Aucun document ici.</p>';
+  };
+    window.viewChantierDocC121=id=>{
+    const d=docs.find(x=>x.id===id),z=document.getElementById('c121-doc-editor');
+    if(!d||!z)return;
+    const safeContent=esc(d.contenu||'').replace(/\r\n?/g,'\n');
+    z.innerHTML='<article class="c121-editor"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h3>'+esc(d.titre)+'</h3><button class="btn-secondary" onclick="editChantierDocC121(\''+id+'\')">✏️ Modifier</button></div><div style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.75;max-height:70vh;overflow:auto">'+(safeContent||'<em>Document vide.</em>')+'</div><button class="btn-secondary" onclick="document.getElementById(\'c121-doc-editor\').innerHTML=\'\'">Fermer</button></article>';
+    z.scrollIntoView({block:'nearest'});
   };
   window.editChantierDocC121=(id='')=>{
     const d=docs.find(x=>x.id===id)||{},z=document.getElementById('c121-doc-editor');
