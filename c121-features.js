@@ -9,16 +9,31 @@
   // Navigation C121 : l'EDL est une page autonome, avec son entree visible
   // meme si la navigation principale utilise des elements non standards.
   function mountEDLC121(){
-    if(document.getElementById('c121-edl-nav'))return;
-    const button=document.createElement('button');
-    button.id='c121-edl-nav';button.type='button';button.textContent='🌱 État des lieux';
-    button.setAttribute('aria-label','Ouvrir Etat des lieux');
-    button.style.cssText='position:fixed;right:22px;bottom:22px;z-index:2147483000;padding:13px 19px;border:0;border-radius:14px;background:#7752a3;color:white;font:600 15px system-ui;box-shadow:0 4px 18px #0004;cursor:pointer';
-    button.addEventListener('click',()=>{try{navigate('edl')}catch(e){console.error('EDL C121',e);alert('Ouverture EDL impossible : '+e.message)}});
-    document.body.appendChild(button);
+    if(!document.body)return;
+    // Le Catalogue contient deja l'entree Personnages : s'ancrer a son noeud visible.
+    const candidates=[...document.querySelectorAll('button,a,[role="button"],.nav-item,.sidebar-item')];
+    const anchor=candidates.find(el=>/personnages/i.test(el.textContent||'') && (el.textContent||'').trim().length<100);
+    if(anchor && !document.getElementById('c121-edl-sidebar')){
+      const button=document.createElement('button');
+      button.id='c121-edl-sidebar';button.type='button';button.textContent='🌱 État des lieux';
+      button.className=anchor.className||'';
+      button.style.cssText='display:block;width:100%;min-height:38px;padding:9px 12px;text-align:left;border:0;border-radius:9px;background:transparent;color:inherit;font:inherit;cursor:pointer';
+      button.onclick=()=>navigate('edl');
+      anchor.insertAdjacentElement('afterend',button);
+    }
+    // Secours : conserver l'acces flottant tant que le menu n'est pas valide.
+    if(!document.getElementById('c121-edl-sidebar')&&!document.getElementById('c121-edl-nav')){
+      const button=document.createElement('button');
+      button.id='c121-edl-nav';button.type='button';button.textContent='🌱 État des lieux';
+      button.style.cssText='position:fixed;right:22px;bottom:22px;z-index:2147483000;padding:13px 19px;border:0;border-radius:14px;background:#7752a3;color:white;font:600 15px system-ui;box-shadow:0 4px 18px #0004;cursor:pointer';
+      button.onclick=()=>navigate('edl');document.body.appendChild(button);
+    }
+    if(document.getElementById('c121-edl-sidebar'))document.getElementById('c121-edl-nav')?.remove();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mountEDLC121,{once:true});
   else mountEDLC121();
+  const c121NavObserver=new MutationObserver(()=>{if(!document.getElementById('c121-edl-sidebar'))mountEDLC121()});
+  c121NavObserver.observe(document.documentElement,{childList:true,subtree:true});
   const nav0=navigate;
   navigate=function(key){if(key==='edl'){resetTheme();setActiveNav(key);renderEDLC121();return;}return nav0(key)};
   let edlRows=[],overrides={},sagaNames={},sousNames={};
