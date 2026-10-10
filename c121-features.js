@@ -16,8 +16,8 @@
     if(anchor && !document.getElementById('c121-edl-sidebar')){
       const button=document.createElement('button');
       button.id='c121-edl-sidebar';button.type='button';button.textContent='🌱 État des lieux';
-      button.className=anchor.className||'';
-      button.style.cssText='display:block;width:100%;min-height:38px;padding:9px 12px;text-align:left;border:0;border-radius:9px;background:transparent;color:inherit;font:inherit;cursor:pointer';
+      button.className=anchor.className||'';button.style.cssText=anchor.getAttribute('style')||'';
+      button.style.cssText='';
       button.onclick=()=>navigate('edl');
       anchor.insertAdjacentElement('afterend',button);
     }
@@ -99,13 +99,36 @@
       box.append(label,select);card.querySelector('.work-character-copy-c92')?.append(box);
     });
   };
+  // Les archives sont des personnages masques dans les fiches oeuvres,
+  // sans supprimer leurs associations en base.
+  const oldPeopleC121=renderOeuvrePersonnages;
+  renderOeuvrePersonnages=async function(zone){
+    await oldPeopleC121(zone);
+    const links=opoLinks.filter(r=>personnageFilter==='tous'||String(r.importance||'').toLowerCase()===personnageFilter);
+    const ids=[...new Set(links.map(r=>r.personnage_id).filter(Boolean))];
+    if(!ids.length)return;
+    const response=await db().from('personnages').select('*').in('id',ids);
+    if(response.error){console.warn('Archives personnages C121 :',response.error.message);return;}
+    const archived=new Set((response.data||[]).filter(p=>p.archive===true||p.archive===1||p.archive==='true'||p.archived===true||p.est_archive===true||p.statut_archive===true).map(p=>String(p.id)));
+    [...zone.querySelectorAll('.work-character-card-c92')].forEach((card,i)=>{
+      if(archived.has(String(links[i]?.personnage_id)))card.remove();
+    });
+  };
   const oldManuscript=renderOeuvreManuscrit;
   renderOeuvreManuscrit=async function(zone){
     await oldManuscript(zone);
+    if(!zone.querySelector('#c121-chapter-picker')){const picker=document.createElement('button');picker.id='c121-chapter-picker';picker.className='btn-secondary';picker.textContent='✏️ Modifier un chapitre';picker.style.cssText='margin:10px 0';picker.onclick=()=>openChapterPickerC121();zone.prepend(picker)}
     const trs=[...zone.querySelectorAll('.manuscript-table tbody tr')].filter(tr=>!tr.classList.contains('manuscript-summary-row'));if(!trs.length)return;
     const r=await db().from('chapitres').select('id,numero,ordre,nb_mots,etat,statut').eq('oeuvre_id',currentOeuvreId).order('ordre');if(r.error)return;
     const rows=(r.data||[]).filter(c=>Number(c.nb_mots)>0||/écrit|ecrit|rédig|redig|relu|termin/i.test(String(c.etat||c.statut||'')));
     trs.forEach((tr,i)=>{if(!rows[i])return;const b=document.createElement('button');b.className='btn-secondary';b.textContent='✏️ Modifier';b.style.marginLeft='6px';b.onclick=()=>openManuscriptEditC121(rows[i].id);tr.lastElementChild.append(b)});
+  };
+  // Point d'entree explicite, independant de la structure du tableau manuscrit.
+  window.openChapterPickerC121=async()=>{
+    const r=await db().from('chapitres').select('id,titre,numero,ordre').eq('oeuvre_id',currentOeuvreId).order('ordre');
+    if(r.error)return alert('Chapitres : '+r.error.message);
+    const list=r.data||[];
+    openDrawer('Modifier un chapitre','<div class="c121-editor"><p>Choisis le chapitre à modifier individuellement, sans réimporter le manuscrit.</p>'+list.map(c=>'<button class="btn-secondary" style="display:block;width:100%;margin:5px 0;text-align:left" onclick="openManuscriptEditC121(\''+c.id+'\')">'+esc((c.numero??c.ordre??'')+' · '+(c.titre||'Chapitre'))+'</button>').join('')+'</div>');
   };
   window.openManuscriptEditC121=async id=>{
     const r=await db().from('chapitres').select('*').eq('id',id).single();if(r.error)return alert(r.error.message);const c=r.data;
