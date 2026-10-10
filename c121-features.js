@@ -21,7 +21,7 @@
   else mountEDLC121();
   const nav0=navigate;
   navigate=function(key){if(key==='edl'){resetTheme();setActiveNav(key);renderEDLC121();return;}return nav0(key)};
-  let edlRows=[],overrides={};
+  let edlRows=[],overrides={},sagaNames={},sousNames={};
   const code=(id,k)=>id+'::'+k;
   const auto=(w,p,l,kw)=>{
     const infos=[w.genre,w.format_cible||w.format,w.statut,w.tonalite,w.temporalite,w.lieu_principal,w.public_cible];
@@ -35,7 +35,7 @@
     const [w,p,l,e,k,sagas,sous]=await Promise.all([db().from('oeuvres').select('*').order('titre'),db().from('personnages_oeuvres').select('oeuvre_id'),db().from('plans').select('oeuvre_id'),db().from('edl_evaluations').select('*'),db().from('keyword_links').select('entity_id').eq('entity_type','oeuvre'),db().from('sagas').select('id,nom'),db().from('sous_sagas').select('id,nom')]);
     const error=w.error||p.error||l.error||e.error;
     if(error){root.innerHTML='<div class="panel">EDL indisponible : '+esc(error.message)+'<p>Applique la migration SQL C121 avant d’utiliser cet écran.</p></div>';return;}
-    const pCount={},lCount={},kCount={},sagaNames=Object.fromEntries((sagas.data||[]).map(x=>[x.id,x.nom])),sousNames=Object.fromEntries((sous.data||[]).map(x=>[x.id,x.nom]));
+    const pCount={},lCount={},kCount={};sagaNames=Object.fromEntries((sagas.data||[]).map(x=>[x.id,x.nom]));sousNames=Object.fromEntries((sous.data||[]).map(x=>[x.id,x.nom]));
     (k.data||[]).forEach(x=>kCount[x.entity_id]=(kCount[x.entity_id]||0)+1);
     (p.data||[]).forEach(x=>pCount[x.oeuvre_id]=(pCount[x.oeuvre_id]||0)+1);
     (l.data||[]).forEach(x=>lCount[x.oeuvre_id]=(lCount[x.oeuvre_id]||0)+1);
