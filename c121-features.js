@@ -6,27 +6,19 @@
   const styles=document.createElement('style');styles.textContent=
   '.c121-tabs{display:flex;gap:8px;margin:10px 0 18px;flex-wrap:wrap}.c121-tabs button{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:9px 15px;color:var(--text);cursor:pointer}.c121-tabs button.active{background:var(--accent);color:white}.c121-editor{display:grid;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:18px}.c121-editor input,.c121-editor textarea,.c121-editor select{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--text);font:inherit}.c121-editor textarea{min-height:280px;resize:vertical;line-height:1.6}.c121-doc{border-bottom:1px solid var(--line);padding:14px 0;display:flex;justify-content:space-between;align-items:center;gap:10px}.c121-overflow{overflow:auto}.c121-table{border-collapse:collapse;width:100%}.c121-table td,.c121-table th{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.c121-table select{border:1px solid var(--line);background:var(--card);color:var(--text);padding:7px;border-radius:8px;max-width:160px}';
   document.head.append(styles);
-  // L'interface a deja construit son menu avant le chargement du module.
-  // Monter l'acces EDL sur la navigation existante, sans supposer le type des noeuds.
-  function ensureEDLMenuC121(){
+  // Navigation C121 : l'EDL est une page autonome, avec son entree visible
+  // meme si la navigation principale utilise des elements non standards.
+  function mountEDLC121(){
     if(document.getElementById('c121-edl-nav'))return;
-    const labels=[...document.querySelectorAll('button,a,div,span')];
-    const normalized=el=>(el.textContent||'').replace(/^[^\\p{L}]+/u,'').trim().toLowerCase();
-    const person=labels.find(el=>el.children.length===0&&normalized(el)==='personnages');
-    const catalog=labels.find(el=>el.children.length===0&&normalized(el)==='catalogue');
-    const target=person?.closest('button,a')||person?.parentElement||catalog?.closest('button,a')||catalog?.parentElement;
-    if(!target||!target.parentElement)return;
-    const btn=document.createElement('button');
-    btn.id='c121-edl-nav';btn.type='button';btn.textContent='🌱 État des lieux';
-    btn.className=target.className||'';
-    btn.style.cssText='display:block;width:100%;min-height:42px;margin:8px 0;padding:10px;border:1px solid #ded4e6;border-radius:12px;background:var(--card,#fff);color:var(--text,#302638);cursor:pointer;font:inherit';
-    btn.onclick=()=>navigate('edl');
-    target.insertAdjacentElement('afterend',btn);
+    const button=document.createElement('button');
+    button.id='c121-edl-nav';button.type='button';button.textContent='🌱 État des lieux';
+    button.setAttribute('aria-label','Ouvrir Etat des lieux');
+    button.style.cssText='position:fixed;right:22px;bottom:22px;z-index:2147483000;padding:13px 19px;border:0;border-radius:14px;background:#7752a3;color:white;font:600 15px system-ui;box-shadow:0 4px 18px #0004;cursor:pointer';
+    button.addEventListener('click',()=>{try{navigate('edl')}catch(e){console.error('EDL C121',e);alert('Ouverture EDL impossible : '+e.message)}});
+    document.body.appendChild(button);
   }
-  // Navigation dynamique : le lien est remis en place si le menu est reconstruit.
-  const observerC121=new MutationObserver(()=>{if(!document.getElementById('c121-edl-nav'))ensureEDLMenuC121()});
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{ensureEDLMenuC121();observerC121.observe(document.body,{childList:true,subtree:true})},{once:true});
-  else {ensureEDLMenuC121();observerC121.observe(document.body,{childList:true,subtree:true})}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mountEDLC121,{once:true});
+  else mountEDLC121();
   const nav0=navigate;
   navigate=function(key){if(key==='edl'){resetTheme();setActiveNav(key);renderEDLC121();return;}return nav0(key)};
   let edlRows=[],overrides={};
