@@ -7,6 +7,23 @@
   '.c121-tabs{display:flex;gap:8px;margin:10px 0 18px;flex-wrap:wrap}.c121-tabs button{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:9px 15px;color:var(--text);cursor:pointer}.c121-tabs button.active{background:var(--accent);color:white}.c121-editor{display:grid;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:18px}.c121-editor input,.c121-editor textarea,.c121-editor select{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--text);font:inherit}.c121-editor textarea{min-height:280px;resize:vertical;line-height:1.6}.c121-doc{border-bottom:1px solid var(--line);padding:14px 0;display:flex;justify-content:space-between;align-items:center;gap:10px}.c121-overflow{overflow:auto}.c121-table{border-collapse:collapse;width:100%}.c121-table td,.c121-table th{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.c121-table select{border:1px solid var(--line);background:var(--card);color:var(--text);padding:7px;border-radius:8px;max-width:160px}';
   document.head.append(styles);
   NAV[0].items.push({key:'edl',label:'🌱 État des lieux (EDL)',real:true});
+  // C121 test : le menu a deja ete construit avant le chargement de ce fichier.
+  // Inserer le lien EDL dans le Catalogue visible, sans refaire toute la navigation.
+  function ensureEDLMenuC121(){
+    if(document.getElementById('c121-edl-nav'))return;
+    const candidates=[...document.querySelectorAll('button,a')];
+    const catalogue=candidates.find(el=>/^Catalogue$/i.test((el.textContent||'').trim()));
+    if(!catalogue)return;
+    const existing=candidates.find(el=>/^(?:.*)Personnages$/.test((el.textContent||'').trim()));
+    const anchor=existing||catalogue;
+    const button=document.createElement('button');
+    button.id='c121-edl-nav';button.type='button';button.textContent='🌱 État des lieux';
+    button.style.cssText='display:block;width:100%;min-height:40px;margin:8px 0;padding:10px 12px;border:1px solid var(--line,#e5dcec);border-radius:10px;background:var(--card,#fff);color:var(--text,#302638);cursor:pointer;font:inherit;text-align:center';
+    button.addEventListener('click',()=>navigate('edl'));
+    anchor.insertAdjacentElement('afterend',button);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureEDLMenuC121,{once:true});
+  else ensureEDLMenuC121();
   const nav0=navigate;
   navigate=function(key){if(key==='edl'){resetTheme();setActiveNav(key);renderEDLC121();return;}return nav0(key)};
   let edlRows=[],overrides={};
