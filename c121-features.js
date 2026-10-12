@@ -420,4 +420,27 @@
   coverCss123.textContent='.c123-codex .entity-card{height:auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;background:var(--card)!important;overflow:hidden}.c123-codex .entity-card::before,.c123-codex .entity-card::after{display:none!important}.c123-codex .entity-card-bg{position:relative!important;inset:auto!important;display:block!important;height:215px!important;flex:none!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important;opacity:1!important;filter:none!important;background-color:var(--bg-2)!important}.c123-codex .entity-card-body{position:relative!important;inset:auto!important;display:block!important;min-height:75px!important;padding:13px 15px!important;background:var(--card)!important;color:var(--text)!important}.c123-codex .entity-card-body h3{color:var(--text)!important;font-size:20px!important}.c123-codex .entity-card-top{position:absolute!important;top:6px;left:7px;z-index:4}.c123-codex .c123-heading{grid-column:1/-1;font-weight:700;padding:10px 0;border-bottom:1px solid var(--line)}.c123-filter{margin:12px 0}.c123-filter select{padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text)}';
   document.head.append(coverCss123);
 
+
+  async function applyCodexCategories123(zone,context){
+    const gallery=zone?.querySelector('.entity-gallery');if(!gallery)return;
+    const r=await db().from('codex_pages').select('*').eq(context==='saga'?'saga_id':'sous_saga_id',context==='saga'?currentSagaId:currentSousSagaId).order('ordre');
+    if(r.error)return;
+    const pages=(r.data||[]).filter(p=>codexPageIsArchivedV39b(p)===!!codexArchiveViewV39b[context]);
+    const cards=[...gallery.querySelectorAll('.codex-card-shell-v39b')];
+    if(cards.length!==pages.length)return;
+    const cats=[...new Set(pages.flatMap(p=>codexCategoryTagsV39(p.categorie)))].sort();
+    const select=document.createElement('select');select.append(new Option('Toutes les catégories',''));
+    cats.forEach(c=>select.append(new Option(c,c)));
+    const bar=document.createElement('div');bar.className='c123-filter';bar.append('Catégorie : ',select);gallery.before(bar);
+    gallery.classList.add('c123-codex');
+    select.onchange=()=>{
+      const chosen=select.value;
+      const sorted=pages.map((p,i)=>({p,card:cards[i]})).filter(x=>!chosen||codexCategoryTagsV39(x.p.categorie).includes(chosen));
+      sorted.sort((a,b)=>(chosen?'':codexCategoryTagsV39(a.p.categorie)[0]||'').localeCompare(chosen?'':codexCategoryTagsV39(b.p.categorie)[0]||'')||(Date.parse(a.p.created_at)||0)-(Date.parse(b.p.created_at)||0));
+      sorted.forEach(x=>gallery.append(x.card));
+      cards.forEach(card=>card.hidden=!sorted.some(x=>x.card===card));
+    };
+    select.onchange();
+  }
+
 })();
