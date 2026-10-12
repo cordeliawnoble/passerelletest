@@ -511,28 +511,43 @@
     document.getElementById('c123-quick-backdrop')?.remove();
     document.getElementById('c123-quick-panel')?.remove();
   };
-  window.openCharacterQuickPanel123=function(id){
-    const p=characterCatalogV572.characters.find(x=>String(x.id)===String(id));
-    if(!p)return;
+
+  window.openCharacterQuickPanel123=async function(id){
     closeCharacterQuickPanel123();
     const back=document.createElement('div');back.id='c123-quick-backdrop';back.className='c123-quick-backdrop';back.onclick=closeCharacterQuickPanel123;
-    const panel=document.createElement('aside');panel.id='c123-quick-panel';panel.className='c123-quick-panel';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-label','Aperçu de '+p.nom);
+    const panel=document.createElement('aside');panel.id='c123-quick-panel';panel.className='c123-quick-panel';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Aperçu du personnage');
     const header=document.createElement('div');header.className='c123-quick-header';
-    const title=document.createElement('h2');title.textContent=p.nom;
+    const title=document.createElement('h2');title.textContent='Chargement…';
     const close=document.createElement('button');close.className='btn-secondary';close.textContent='✕ Fermer';close.onclick=closeCharacterQuickPanel123;
-    header.append(title,close);panel.append(header);
-    if(p.portrait_url){const img=document.createElement('img');img.className='c123-quick-portrait';img.src=p.portrait_url;img.alt=p.nom;panel.append(img)}
-    const summary=document.createElement('section');summary.className='c123-quick-section';
-    const h=document.createElement('h3');h.textContent='Résumé';const desc=document.createElement('p');desc.textContent=p.resume||'Aucun résumé renseigné.';
-    summary.append(h,desc);panel.append(summary);
-    const rel=characterRelationsV572(p.id);
-    const works=document.createElement('section');works.className='c123-quick-section';
-    const wh=document.createElement('h3');wh.textContent='Œuvres associées';works.append(wh);
-    if(!rel.length){const empty=document.createElement('p');empty.textContent='Aucune œuvre associée.';works.append(empty)}
-    rel.forEach(r=>{const tag=document.createElement('span');tag.className='tag';tag.textContent=(r.work?.titre||'Œuvre inconnue')+(r.importance?' · '+r.importance:'');works.append(tag)});
-    panel.append(works);
-    const status=document.createElement('section');status.className='c123-quick-section';status.textContent=p.archive?'🍂 Personnage archivé':'🌿 Personnage actif';panel.append(status);
-    document.body.append(back,panel);close.focus();
+    header.append(title,close);panel.append(header);document.body.append(back,panel);
+    const [pr,lr,wr,mr]=await Promise.all([
+      db().from('personnages').select('*').eq('id',id).single(),
+      db().from('personnages_oeuvres').select('*').eq('personnage_id',id),
+      db().from('oeuvres').select('id,titre'),
+      db().from('medias').select('*').eq('personnage_id',id).limit(30)
+    ]);
+    if(!panel.isConnected)return;
+    if(pr.error){title.textContent='Fiche indisponible';const err=document.createElement('p');err.textContent=pr.error.message;panel.append(err);return}
+    const p=pr.data,d=characterDataV573(p);
+    title.textContent=p.nom||'Personnage';
+    const portrait=p.portrait_url||d.portrait_url||(mr.data||[]).find(m=>m.type==='Portrait')?.url;
+    if(portrait){const img=document.createElement('img');img.className='c123-quick-portrait';img.src=portrait;img.alt=p.nom||'';panel.append(img)}
+    const addSection=(heading,value)=>{
+      if(value==null||String(value).trim()==='')return;
+      const sec=document.createElement('section');sec.className='c123-quick-section';
+      const h=document.createElement('h3');h.textContent=heading;
+      const body=document.createElement('p');body.textContent=String(value);
+      body.style.whiteSpace='pre-wrap';sec.append(h,body);panel.append(sec);
+    };
+    addSection('Résumé',p.resume||d.resume||d.presentation||d.description);
+    const fields=[['Nom complet',d.nom_complet],['Surnom',d.surnom],['Âge',d.age],['Espèce',d.espece],['Profession',d.profession],['Affiliation',d.affiliation],['Personnalité',d.personnalite],['Rôle',d.role]];
+    fields.forEach(([label,value])=>addSection(label,value));
+    const links=lr.data||[],works=new Map((wr.data||[]).map(w=>[w.id,w.titre]));
+    addSection('Œuvres associées',links.map(l=>(works.get(l.oeuvre_id)||'Œuvre inconnue')+(l.importance?' · '+l.importance:'')).join('\n')||'Aucune œuvre associée.');
+    addSection('État',p.archive?'Personnage archivé':'Personnage actif');
+    const more=document.createElement('button');more.className='btn-secondary';more.textContent='Ouvrir la fiche complète';
+    more.onclick=()=>{closeCharacterQuickPanel123();openCharacterDetailV573(id)};
+    panel.append(more);
   };
   const quickTable123=renderCharacterCatalogResultsV572;
   renderCharacterCatalogResultsV572=function(){
