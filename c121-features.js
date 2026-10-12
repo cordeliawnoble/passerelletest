@@ -548,4 +548,48 @@
     });
   };
 
+
+  // C123 : ordre des tomes pour les oeuvres directement rattachees a une saga.
+  const sagaOrderOriginal123=renderAdminSagaEditorV56;
+  renderAdminSagaEditorV56=async function(){
+    await sagaOrderOriginal123();
+    if(adminSagaTabV56!=='information')return;
+    const zone=document.getElementById('admin-saga-tab-v56');
+    if(!zone)return;
+    const r=await db().from('oeuvres').select('id,titre,numero_sous_saga,ordre_sous_saga').eq('saga_id',adminSagaIdV56).is('sous_saga_id',null);
+    if(r.error)return console.warn('C123 ordre saga',r.error);
+    const works=(r.data||[]).sort((a,b)=>(a.ordre_sous_saga??9999)-(b.ordre_sous_saga??9999)||(a.numero_sous_saga??9999)-(b.numero_sous_saga??9999));
+    const section=document.createElement('section');section.className='admin-section';
+    const heading=document.createElement('div');heading.className='admin-section-head';
+    const intro=document.createElement('div');intro.innerHTML='<h2>Ordre des tomes</h2><p class="admin-section-sub">Œuvres directement rattachées à la saga, hors sous-sagas. Numéro de tome et ordre d’affichage indépendants.</p>';
+    const save=document.createElement('button');save.className='btn-primary';save.textContent='Enregistrer l’ordre';save.onclick=async()=>{
+      save.disabled=true;
+      const rows=[...section.querySelectorAll('.ss-work-order-row')];
+      for(const row of rows){
+        const id=row.dataset.workId;
+        const num=row.querySelector('[data-role="num"]').value;
+        const ord=row.querySelector('[data-role="order"]').value;
+        const payload={numero_sous_saga:num===''?null:Number(num),ordre_sous_saga:ord===''?null:Number(ord)};
+        const result=await db().from('oeuvres').update(payload).eq('id',id).eq('saga_id',adminSagaIdV56).is('sous_saga_id',null);
+        if(result.error){alert('Ordre non enregistré : '+result.error.message);save.disabled=false;return}
+      }
+      save.disabled=false;alert('Ordre des tomes enregistré ✓');
+      await renderAdminSagaEditorV56();
+    };
+    heading.append(intro,save);section.append(heading);
+    const list=document.createElement('div');list.className='ss-work-order-list';
+    works.forEach((w,i)=>{
+      const row=document.createElement('div');row.className='ss-work-order-row';row.dataset.workId=w.id;
+      const title=document.createElement('div');title.className='ss-work-order-title';
+      const strong=document.createElement('strong');strong.textContent=w.titre;title.append(strong);
+      const numLabel=document.createElement('label');numLabel.textContent='Numéro du tome';
+      const num=document.createElement('input');num.type='number';num.min='0';num.step='1';num.dataset.role='num';num.value=w.numero_sous_saga??'';numLabel.append(num);
+      const ordLabel=document.createElement('label');ordLabel.textContent='Ordre d’affichage';
+      const ord=document.createElement('input');ord.type='number';ord.min='0';ord.step='1';ord.dataset.role='order';ord.value=w.ordre_sous_saga??i+1;ordLabel.append(ord);
+      row.append(title,numLabel,ordLabel);list.append(row);
+    });
+    if(!works.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Aucune œuvre directement rattachée à cette saga.';list.append(empty)}
+    section.append(list);zone.append(section);
+  };
+
 })();
