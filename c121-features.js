@@ -288,23 +288,25 @@
     });
     const empty=table.querySelector('td[colspan="5"]');if(empty)empty.colSpan=6;
   };
-  // 4. Galerie oeuvre : ordre de chapitre reel, non du nom du fichier.
+  // 4. Tri par chapitre lie, identification stable des cartes par leur ID media.
   const workMedia122=renderOeuvreMedias;
   renderOeuvreMedias=async function(zone){
     await workMedia122(zone);
     const grid=zone.querySelector('.media-grid');if(!grid)return;
-    const cards=[...grid.querySelectorAll('.media-card')];if(!cards.length)return;
-    const [media,chapters]=await Promise.all([db().from('medias').select('id,type,chapitre_id,created_at').eq('oeuvre_id',currentOeuvreId).order('created_at',{ascending:false}),db().from('chapitres').select('id,numero,ordre').eq('oeuvre_id',currentOeuvreId)]);
-    if(media.error||chapters.error)return console.warn('C122 tri medias',media.error||chapters.error);
+    const cards=[...grid.querySelectorAll('.media-card')];if(cards.length<2)return;
+    const ids=cards.map(card=>{const action=card.getAttribute('onclick')||'';return action.includes('openMediaDrawer(')?action.split('openMediaDrawer(')[1].split(')')[0].replaceAll(String.fromCharCode(39),'').replaceAll(String.fromCharCode(34),'').trim():null});
+    if(ids.some(id=>!id))return console.warn('C122 : IDs medias introuvables');
+    const [media,chapters]=await Promise.all([db().from('medias').select('id,type,chapitre_id').in('id',ids),db().from('chapitres').select('id,numero,ordre').eq('oeuvre_id',currentOeuvreId)]);
+    if(media.error||chapters.error)return console.warn('C122 tri illustrations',media.error||chapters.error);
+    const byId=new Map((media.data||[]).map(m=>[String(m.id),m]));
     const order=new Map((chapters.data||[]).map((c,i)=>[String(c.id),Number(c.numero??c.ordre??i+1)]));
-    const rows=(media.data||[]).filter(m=>mediaFilter==='Tout'||m.type===mediaFilter);
-    const mapped=cards.map((card,i)=>({card,m:rows[i],i}));
-    mapped.sort((a,b)=>{
-      if(a.m?.type!=='Illustration'||b.m?.type!=='Illustration')return a.i-b.i;
-      const av=order.get(String(a.m.chapitre_id)),bv=order.get(String(b.m.chapitre_id));
+    const mapped=cards.map((card,i)=>({card,media:byId.get(ids[i]),i}));
+    const illustrations=mapped.filter(x=>x.media?.type==='Illustration').sort((a,b)=>{
+      const av=order.get(String(a.media.chapitre_id)),bv=order.get(String(b.media.chapitre_id));
       return (Number.isFinite(av)?av:Infinity)-(Number.isFinite(bv)?bv:Infinity)||a.i-b.i;
     });
-    mapped.forEach(x=>grid.append(x.card));
+    let n=0;
+    mapped.map(x=>x.media?.type==='Illustration'?illustrations[n++]:x).forEach(x=>grid.appendChild(x.card));
   };
   // 5. Mediatheque personnage : remplacer le fichier sans changer la fiche ni l'ID media.
   const detail122=openCharacterDetailV573;
