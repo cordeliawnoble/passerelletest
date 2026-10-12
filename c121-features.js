@@ -114,24 +114,6 @@
       if(archived.has(String(links[i]?.personnage_id)))card.remove();
     });
   };
-  // C122 : filtrer les cartes réellement rendues, et non les index de relations.
-  const renderPeopleBeforeC122=renderOeuvrePersonnages;
-  renderOeuvrePersonnages=async function(zone){
-    const requested=String(personnageFilter||'tous').toLowerCase();
-    personnageFilter='tous';
-    try{await renderPeopleBeforeC122(zone)}finally{personnageFilter=requested}
-    if(requested==='tous')return;
-    const expected=/^principa(?:l|ux|les?)$/.test(requested)?'principal':/^secondair(?:e|es|s)$/.test(requested)?'secondaire':requested;
-    const cards=[...zone.querySelectorAll('.work-character-card-c92')];
-    let visible=0;
-    cards.forEach(card=>{
-      const select=[...card.querySelectorAll('select')].find(el=>[...el.options].some(o=>o.value==='Principal')&&[...el.options].some(o=>o.value==='Secondaire'));
-      const importance=String(select?.value||'Principal').trim().toLowerCase();
-      if(importance!==expected)card.remove();else visible++;
-    });
-    // L'ancien message "aucun personnage" concerne la liste non filtree.
-    if(visible)zone.querySelectorAll('.work-character-empty-c92').forEach(el=>el.remove());
-  };
   const oldManuscript=renderOeuvreManuscrit;
   renderOeuvreManuscrit=async function(zone){
     await oldManuscript(zone);
@@ -219,94 +201,6 @@
   };
   window.archiveChantierDocC121=async(id,archive)=>{const r=await db().from('documents_chantier').update({archive,updated_at:new Date().toISOString()}).eq('id',id);if(r.error)return alert(r.error.message);await renderChantierDocsC121();};
   window.deleteChantierDocC121=async id=>{if(!confirm('Supprimer définitivement ce document ?'))return;const r=await db().from('documents_chantier').delete().eq('id',id);if(r.error)return alert(r.error.message);await renderChantierDocsC121();};
-})();  const oldManuscript=renderOeuvreManuscrit;
-  renderOeuvreManuscrit=async function(zone){
-    await oldManuscript(zone);
-    if(!zone.querySelector('#c121-chapter-picker')){const picker=document.createElement('button');picker.id='c121-chapter-picker';picker.className='btn-secondary';picker.textContent='✏️ Modifier un chapitre';picker.style.cssText='margin:10px 0';picker.onclick=()=>openChapterPickerC121();zone.prepend(picker)}
-    const trs=[...zone.querySelectorAll('.manuscript-table tbody tr')].filter(tr=>!tr.classList.contains('manuscript-summary-row'));if(!trs.length)return;
-    const r=await db().from('chapitres').select('id,numero,ordre,nb_mots,etat,statut').eq('oeuvre_id',currentOeuvreId).order('ordre');if(r.error)return;
-    const rows=(r.data||[]).filter(c=>Number(c.nb_mots)>0||/écrit|ecrit|rédig|redig|relu|termin/i.test(String(c.etat||c.statut||'')));
-    trs.forEach((tr,i)=>{if(!rows[i])return;const b=document.createElement('button');b.className='btn-secondary';b.textContent='✏️ Modifier';b.style.marginLeft='6px';b.onclick=()=>openManuscriptEditC121(rows[i].id);tr.lastElementChild.append(b)});
-  };
-  // Point d'entree explicite, independant de la structure du tableau manuscrit.
-  window.openChapterPickerC121=async()=>{
-    const r=await db().from('chapitres').select('id,titre,numero,ordre').eq('oeuvre_id',currentOeuvreId).order('ordre');
-    if(r.error)return alert('Chapitres : '+r.error.message);
-    const list=r.data||[];
-    openDrawer('Modifier un chapitre','<div class="c121-editor"><p>Choisis le chapitre à modifier individuellement, sans réimporter le manuscrit.</p>'+list.map(c=>'<button class="btn-secondary" style="display:block;width:100%;margin:5px 0;text-align:left" onclick="openManuscriptEditC121(\''+c.id+'\')">'+esc((c.numero??c.ordre??'')+' · '+(c.titre||'Chapitre'))+'</button>').join('')+'</div>');
-  };
-  window.openManuscriptEditC121=async id=>{
-    const r=await db().from('chapitres').select('*').eq('id',id).single();if(r.error)return alert(r.error.message);const c=r.data;
-    openDrawer('Modifier le chapitre '+esc(c.numero??c.ordre??''),'<div class="c121-editor">'+
-      '<label>Titre<input id="c121-title" value="'+esc(c.titre)+'"></label>'+
-      '<label>Mots<input id="c121-words" type="number" min="0" value="'+Number(c.nb_mots||0)+'"></label>'+
-      '<label>État<select id="c121-etat">'+['À écrire','En cours','Rédigé','Révisé'].map(s=>'<option'+(s===(c.etat||c.statut)?' selected':'')+'>'+s+'</option>').join('')+'</select></label>'+
-      '<label>Date d’écriture<input id="c121-date" type="date" value="'+esc(String(c.date_ecriture||'').slice(0,10))+'"></label>'+
-      '<label>Résumé réellement écrit<textarea id="c121-resume">'+esc(c.resume||'')+'</textarea></label>'+
-      '<p class="status-line">Après enregistrement, les champs de ce chapitre ne seront plus écrasés par Atelier. Tu peux lever cette protection.</p>'+
-      '<button class="btn-primary" onclick="saveManuscriptEditC121(\''+id+'\')">Enregistrer ce chapitre</button>'+
-      '<button class="btn-secondary" onclick="unlockManuscriptC121(\''+id+'\')">↺ Réautoriser la synchro Atelier</button></div>');
-  };
-  window.saveManuscriptEditC121=async id=>{
-    const fields={titre:document.getElementById('c121-title').value.trim(),nb_mots:Math.max(0,Number(document.getElementById('c121-words').value)||0),etat:document.getElementById('c121-etat').value,date_ecriture:document.getElementById('c121-date').value||null,resume:document.getElementById('c121-resume').value.trim()||null};
-    if(!fields.titre)return alert('Le titre est obligatoire.');
-    const r=await db().from('chapitres').update(fields).eq('id',id);if(r.error)return alert(r.error.message);
-    const l=await db().from('chapitres_manuels').upsert({chapitre_id:id,oeuvre_id:currentOeuvreId,user_id:currentUser.id,champs:Object.keys(fields),updated_at:new Date().toISOString()},{onConflict:'chapitre_id'});
-    if(l.error)return alert('Changements enregistrés, mais protection Atelier indisponible : '+l.error.message);
-    closeDrawer();await renderOeuvreManuscrit(document.getElementById('oeuvre-tab-content'));
-  };
-  window.unlockManuscriptC121=async id=>{
-    if(!confirm('Autoriser à nouveau Atelier à remplacer les champs de ce chapitre ?'))return;
-    const r=await db().from('chapitres_manuels').delete().eq('chapitre_id',id);if(r.error)return alert(r.error.message);
-    closeDrawer();alert('Protection retirée.');
-  };
-  let mode='postits',docs=[];
-  const oldChantier=renderOeuvreChantierC97;
-  renderOeuvreChantierC97=async function(zone){
-    await oldChantier(zone);
-    const html=zone.innerHTML;
-    zone.innerHTML='<div class="c121-tabs"><button id="c121-postit-btn" onclick="showChantierModeC121(\'postits\')">🗒️ Post-it</button><button id="c121-doc-btn" onclick="showChantierModeC121(\'documents\')">📄 Documents</button></div><div id="c121-postits">'+html+'</div><div id="c121-documents" style="display:none"></div>';
-    showChantierModeC121(mode);
-  };
-  window.showChantierModeC121=next=>{
-    mode=next;document.getElementById('c121-postits').style.display=next==='postits'?'':'none';document.getElementById('c121-documents').style.display=next==='documents'?'':'none';
-    document.getElementById('c121-postit-btn').classList.toggle('active',next==='postits');document.getElementById('c121-doc-btn').classList.toggle('active',next==='documents');
-    if(next==='documents')renderChantierDocsC121();
-  };
-  window.renderChantierDocsC121=async()=>{
-    const z=document.getElementById('c121-documents');if(!z)return;z.innerHTML='<div class="status-line">Chargement…</div>';
-    const r=await db().from('documents_chantier').select('*').eq('oeuvre_id',currentOeuvreId).order('updated_at',{ascending:false});
-    if(r.error){z.innerHTML='<div class="panel">Documents indisponibles : '+esc(r.error.message)+'<p>Migration SQL C121 nécessaire.</p></div>';return;}
-    docs=r.data||[];
-    z.innerHTML='<section class="panel"><div class="work-toolbar"><div><h2>📄 Documents de travail</h2><p>Plans provisoires et brouillons longs. Le Plan officiel reste intact.</p></div><button class="btn-primary" onclick="editChantierDocC121()">+ Nouveau document</button></div><div class="c121-tabs"><button onclick="listChantierDocsC121(false)">Actifs</button><button onclick="listChantierDocsC121(true)">Archivés</button></div><div id="c121-doc-list"></div><div id="c121-doc-editor"></div></section>';
-    listChantierDocsC121(false);
-  };
-  window.listChantierDocsC121=archived=>{
-    const z=document.getElementById('c121-doc-list');if(!z)return;
-    z.innerHTML=docs.filter(x=>!!x.archive===!!archived).map(x=>'<div class="c121-doc"><div><strong>'+esc(x.titre)+'</strong><div class="status-line">'+(x.contenu||'').length+' caractères · '+esc(x.updated_at?.slice(0,10)||'')+'</div></div><button class="btn-secondary" onclick="viewChantierDocC121(\''+x.id+'\')">👁️ Consulter</button></div>').join('')||'<p class="empty">Aucun document ici.</p>';
-  };
-    window.viewChantierDocC121=id=>{
-    const d=docs.find(x=>x.id===id),z=document.getElementById('c121-doc-editor');
-    if(!d||!z)return;
-    const safeContent=esc(d.contenu||'').replace(/\r\n?/g,'\n');
-    z.innerHTML='<article class="c121-editor"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h3>'+esc(d.titre)+'</h3><button class="btn-secondary" onclick="editChantierDocC121(\''+id+'\')">✏️ Modifier</button></div><div style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.75;max-height:70vh;overflow:auto">'+(safeContent||'<em>Document vide.</em>')+'</div><button class="btn-secondary" onclick="document.getElementById(\'c121-doc-editor\').innerHTML=\'\'">Fermer</button></article>';
-    z.scrollIntoView({block:'nearest'});
-  };
-  window.editChantierDocC121=(id='')=>{
-    const d=docs.find(x=>x.id===id)||{},z=document.getElementById('c121-doc-editor');
-    z.innerHTML='<div class="c121-editor"><h3>'+(id?'Modifier':'Nouveau document')+'</h3><label>Titre<input id="c121-doc-title" value="'+esc(d.titre||'')+'" placeholder="Plan provisoire V0"></label><label>Contenu<textarea id="c121-doc-text" placeholder="Colle ton texte ici…">'+esc(d.contenu||'')+'</textarea></label><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-primary" onclick="saveChantierDocC121(\''+id+'\')">Enregistrer</button><button class="btn-secondary" onclick="document.getElementById(\'c121-doc-editor\').innerHTML=\'\'">Annuler</button>'+
-      (id?'<button class="btn-secondary" onclick="archiveChantierDocC121(\''+id+'\','+(!d.archive)+')">'+(d.archive?'Restaurer':'Archiver')+'</button><button class="btn-secondary" onclick="deleteChantierDocC121(\''+id+'\')">Supprimer</button>':'')+'</div></div>';
-    z.scrollIntoView({block:'nearest'});
-  };
-  window.saveChantierDocC121=async id=>{
-    const titre=document.getElementById('c121-doc-title').value.trim(),contenu=document.getElementById('c121-doc-text').value;if(!titre)return alert('Titre obligatoire.');
-    const changes={titre,contenu,updated_at:new Date().toISOString()};
-    const r=id?await db().from('documents_chantier').update(changes).eq('id',id):await db().from('documents_chantier').insert({...changes,oeuvre_id:currentOeuvreId,user_id:currentUser.id});
-    if(r.error)return alert(r.error.message);await renderChantierDocsC121();
-  };
-  window.archiveChantierDocC121=async(id,archive)=>{const r=await db().from('documents_chantier').update({archive,updated_at:new Date().toISOString()}).eq('id',id);if(r.error)return alert(r.error.message);await renderChantierDocsC121();};
-  window.deleteChantierDocC121=async id=>{if(!confirm('Supprimer définitivement ce document ?'))return;const r=await db().from('documents_chantier').delete().eq('id',id);if(r.error)return alert(r.error.message);await renderChantierDocsC121();};
-
   // C122 · Livraison groupee. Aucune migration de donnees.
   const c122Style=document.createElement('style');
   c122Style.textContent='.c122-actions{display:flex;gap:6px;flex-wrap:wrap;margin:9px 0}.c122-actions button{font-size:12px}.c122-importance{min-width:105px;max-width:145px;font-size:12px;padding:5px}.c122-media-row{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding:9px 0}.c122-media-row img{width:56px;height:66px;object-fit:cover;border-radius:7px}.c122-media-row>div{flex:1;min-width:0}';
@@ -459,5 +353,6 @@
     if(!p.error&&p.data){const fields={};for(const k of ['portrait_url','banniere_url','avatar_site_url'])if(p.data[k]===old.data.url)fields[k]=null;if(Object.keys(fields).length){const u=await db().from('personnages').update(fields).eq('id',characterId);if(u.error)alert('Image supprimée, mais référence fiche non nettoyée : '+u.error.message)}}
     await c122OpenCharacterMedia(characterId);
   };
+
 
 })();
