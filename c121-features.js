@@ -414,4 +414,10 @@
   codexStyle123.textContent='.codex-card-shell-v39b .entity-card{background:var(--card)!important}';
   document.head.append(codexStyle123);
 
+
+  // C123 Codex : couverture entiere, legende distincte, aucun voile degrade.
+  const coverCss123=document.createElement('style');
+  coverCss123.textContent='.c123-codex .entity-card{height:auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;background:var(--card)!important;overflow:hidden}.c123-codex .entity-card::before,.c123-codex .entity-card::after{display:none!important}.c123-codex .entity-card-bg{position:relative!important;inset:auto!important;display:block!important;height:215px!important;flex:none!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important;opacity:1!important;filter:none!important;background-color:var(--bg-2)!important}.c123-codex .entity-card-body{position:relative!important;inset:auto!important;display:block!important;min-height:75px!important;padding:13px 15px!important;background:var(--card)!important;color:var(--text)!important}.c123-codex .entity-card-body h3{color:var(--text)!important;font-size:20px!important}.c123-codex .entity-card-top{position:absolute!important;top:6px;left:7px;z-index:4}.c123-codex .c123-heading{grid-column:1/-1;font-weight:700;padding:10px 0;border-bottom:1px solid var(--line)}.c123-filter{margin:12px 0}.c123-filter select{padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text)}';
+  document.head.append(coverCss123);
+
 })();
