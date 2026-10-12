@@ -443,4 +443,10 @@
     select.onchange();
   }
 
+
+  const originalSagaCodex123=renderSagaCodexV56;
+  renderSagaCodexV56=async function(zone){await originalSagaCodex123(zone);await applyCodexCategories123(zone,'saga')};
+  const originalSubCodex123=renderSousSagaCodex;
+  renderSousSagaCodex=async function(zone){await originalSubCodex123(zone);await applyCodexCategories123(zone,'sous-saga')};
+
 })();
