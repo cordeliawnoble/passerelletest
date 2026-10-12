@@ -616,4 +616,82 @@
     section.append(list);zone.append(section);
   };
 
+
+  // C124 : attribution d'oeuvre par lot dans l'import ZIP de medias personnages.
+  let worksForMedia124=[];
+  const mediaImport124=renderCharacterMediaImportV65;
+  renderCharacterMediaImportV65=async function(zone){
+    await mediaImport124(zone);
+    const result=await db().from('oeuvres').select('id,titre').order('titre');
+    if(!result.error)worksForMedia124=result.data||[];
+    renderCharacterMediaPreviewV65();
+  };
+  function decorateMediaWorks124(){
+    const root=document.getElementById('character-media-import-zone-v65');
+    if(!root||!characterMediaImportV65.items.length)return;
+    const bulk=root.querySelector('.character-media-bulk-v65');
+    if(!bulk)return;
+    const selector=document.createElement('select');selector.id='cm-bulk-work-c124';
+    selector.setAttribute('aria-label','Attribuer une œuvre aux images sélectionnées');
+    selector.append(new Option('Attribuer une œuvre…',''));
+    worksForMedia124.forEach(w=>selector.append(new Option(w.titre.length>48?w.titre.slice(0,45)+'…':w.titre,w.id)));
+    const action=document.createElement('button');action.type='button';action.className='btn-secondary';action.textContent='Appliquer l’œuvre';
+    action.onclick=()=>{
+      const id=selector.value;if(!id)return;
+      const selected=characterMediaImportV65.items.filter(x=>x.selected);
+      if(!selected.length)return;
+      const changed=selected.filter(x=>x.oeuvre_id&&x.oeuvre_id!==id);
+      if(changed.length&&!confirm('Remplacer l’œuvre déjà attribuée sur '+changed.length+' image(s) sélectionnée(s) ?'))return;
+      selected.forEach(x=>x.oeuvre_id=id);
+      renderCharacterMediaPreviewV65();
+    };
+    const apply=bulk.querySelector('button');bulk.insertBefore(selector,apply);bulk.insertBefore(action,apply);
+    const cards=[...root.querySelectorAll('.character-media-card-v65')];
+    cards.forEach((card,i)=>{
+      const x=characterMediaImportV65.items[i];if(!x)return;
+      const select=document.createElement('select');select.setAttribute('aria-label','Œuvre associée à '+x.name);
+      select.append(new Option('— Œuvre (facultatif) —',''));
+      worksForMedia124.forEach(w=>select.append(new Option(w.titre.length>48?w.titre.slice(0,45)+'…':w.titre,w.id)));
+      select.value=x.oeuvre_id||'';
+      select.onchange=()=>{x.oeuvre_id=select.value};
+      const destination=card.querySelectorAll('select')[1];
+      if(destination)destination.after(select);else card.append(select);
+    });
+  }
+  const previewWorks124=renderCharacterMediaPreviewV65;
+  renderCharacterMediaPreviewV65=function(){previewWorks124();decorateMediaWorks124()};
+  // La liaison a l'oeuvre est inscrite dans la ligne media, sans changer
+  // la fiche personnage ni ses relations canoniques aux oeuvres.
+  executeCharacterMediaImportV65=async function(){
+    const rows=characterMediaImportV65.items.filter(x=>x.selected&&x.character_id&&x.destination);
+    if(!rows.length)return;
+    if(!confirm('Importer '+rows.length+' image(s) dans les fiches personnages ?'))return;
+    const status=document.getElementById('character-media-import-status-v65');
+    let done=0;const errors=[];const successful=[];
+    for(const x of rows){
+      const p=characterMediaImportV65.characters.find(c=>c.id===x.character_id);
+      if(!p)continue;
+      try{
+        if(status)status.textContent='Conversion WebP & liaison… '+(done+1)+'/'+rows.length+' · '+p.nom;
+        const url=await uploadAssetFile(x.file,'personnages/'+p.id+'/bulk',{kind:x.destination==='portrait'?'portrait':'generic',throwOnError:true,requireOptimize:true});
+        const updated=await patchCharacterMediaC86(p.id,x.destination,url);
+        const types={portrait:'Portrait',vertical:'Profil vertical',appearance:'Apparence',reference:'Référence visuelle'};
+        const payload={user_id:currentUser.id,personnage_id:p.id,url,titre:x.name.replace(/\.[^.]+$/,''),type:types[x.destination]||'Illustration'};
+        if(x.oeuvre_id)payload.oeuvre_id=x.oeuvre_id;
+        const result=await db().from('medias').insert(payload);
+        if(result.error)throw result.error;
+        p.portrait_url=updated.portrait_url||p.portrait_url;
+        p.contenu=updated.contenu||p.contenu;
+        successful.push(x);done++;
+      }catch(e){errors.push(x.name+': '+(e?.message||e))}
+    }
+    if(status)status.textContent=(errors.length?'⚠ ':'✓ ')+done+' image(s) liée(s)'+(errors.length?' · '+errors.length+' erreur(s)':'');
+    if(errors.length){console.error('Import C124',errors);alert('Import terminé avec '+errors.length+' erreur(s).\n\n'+errors.slice(0,8).join('\n'))}
+    characterMediaImportV65.items=characterMediaImportV65.items.filter(x=>!successful.includes(x));
+    renderCharacterMediaPreviewV65();
+  };
+  const workSelectStyle124=document.createElement('style');
+  workSelectStyle124.textContent='#character-media-import-zone-v65 .character-media-bulk-v65{flex-wrap:wrap!important}#character-media-import-zone-v65 .character-media-bulk-v65 select{min-width:0;max-width:280px;width:auto;flex:1 1 190px}#character-media-import-zone-v65 .character-media-card-v65 select{max-width:100%;width:100%;min-width:0}';
+  document.head.append(workSelectStyle124);
+
 })();
