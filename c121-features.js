@@ -481,4 +481,25 @@
     });
   };
 
+
+  // C123+ : relier les personnages dans une fenetre compacte, fermee apres succes.
+  const linkerStyle123=document.createElement('style');
+  linkerStyle123.textContent='#character-linker-host-c58:has(.character-linker-c58){position:fixed!important;inset:0!important;z-index:1200!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:18px!important;background:rgba(25,19,35,.25)!important;overflow:auto!important}#character-linker-host-c58 .character-linker-c58{width:min(720px,calc(100vw - 36px))!important;max-height:min(76vh,650px)!important;overflow:auto!important;margin:0!important;box-shadow:0 18px 55px rgba(20,10,30,.2)!important;background:var(--card)!important}#character-linker-host-c58 .character-linker-works-c58{max-height:210px!important}';
+  document.head.append(linkerStyle123);
+  const linkOriginal123=bulkLinkCharactersToWorksC58;
+  bulkLinkCharactersToWorksC58=async function(remove=false){
+    const status=document.getElementById('c58-link-status');
+    const checked=document.querySelectorAll('[data-c58-work]:checked').length;
+    if(!checked)return linkOriginal123(remove);
+    await linkOriginal123(remove);
+    const message=status?.textContent||'';
+    if(message.includes('erreur')||message.includes('Choisis'))return;
+    characterBulkLinkerOpenC58=false;
+    characterLinkerSearchC91='';
+    characterLinkerWorkC91='';
+    const host=document.getElementById('character-linker-host-c58');
+    if(host)host.replaceChildren();
+    if(document.getElementById('character-bulk-zone'))renderCharacterBulkBarV572();
+  };
+
 })();
