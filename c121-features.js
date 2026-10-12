@@ -449,4 +449,36 @@
   const originalSubCodex123=renderSousSagaCodex;
   renderSousSagaCodex=async function(zone){await originalSubCodex123(zone);await applyCodexCategories123(zone,'sous-saga')};
 
+
+  // C123+ : consultation rapide d'un personnage sans perdre la selection multiple.
+  const previewCss123=document.createElement('style');
+  previewCss123.textContent='.c123-name-preview{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:4px}.c123-name-preview:hover{color:var(--accent)}';
+  document.head.append(previewCss123);
+  const originalTablePreview123=renderCharacterCatalogResultsV572;
+  renderCharacterCatalogResultsV572=function(){
+    originalTablePreview123();
+    if(characterCatalogV572.view!=='table')return;
+    const rows=[...document.querySelectorAll('#character-results table tbody tr')];
+    const people=filteredCharactersV572();
+    rows.forEach((row,i)=>{
+      const person=people[i],cell=row.children[1];
+      if(!person||!cell)return;
+      const label=cell.querySelector('strong,a')||cell;
+      label.classList.add('c123-name-preview');
+      label.setAttribute('role','button');label.setAttribute('tabindex','0');
+      label.setAttribute('title','Ouvrir la fiche de '+(person.nom||'ce personnage'));
+      const open=ev=>{
+        ev.stopPropagation();
+        const y=window.scrollY;
+        const selection=new Set(characterCatalogV572.selected||[]);
+        Promise.resolve(openCharacterDetailV573(person.id)).finally(()=>{
+          if(characterCatalogV572.selected instanceof Set)characterCatalogV572.selected=selection;
+          window.scrollTo(0,y);
+        });
+      };
+      label.addEventListener('click',open);
+      label.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();open(ev)}});
+    });
+  };
+
 })();
