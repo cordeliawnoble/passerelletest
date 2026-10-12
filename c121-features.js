@@ -114,22 +114,23 @@
       if(archived.has(String(links[i]?.personnage_id)))card.remove();
     });
   };
-  // C122 : les filtres d'oeuvre partagent une seule normalisation des roles.
+  // C122 : filtrer les cartes réellement rendues, et non les index de relations.
   const renderPeopleBeforeC122=renderOeuvrePersonnages;
   renderOeuvrePersonnages=async function(zone){
-    const requested=personnageFilter;
-    // Le moteur historique applique un filtre strict qui omet certaines valeurs "Principal".
-    // Afficher la liste complete, puis filtrer avec la valeur canonique de la relation.
+    const requested=String(personnageFilter||'tous').toLowerCase();
     personnageFilter='tous';
     try{await renderPeopleBeforeC122(zone)}finally{personnageFilter=requested}
     if(requested==='tous')return;
-    const links=opoLinks||[];
-    const normalize=v=>String(normalizeCharacterImportanceC114(v)||v||'').trim().toLowerCase();
-    const expected=requested==='principaux'?'principal':requested==='secondaires'?'secondaire':requested.replace(/s$/,'');
-    [...zone.querySelectorAll('.work-character-card-c92')].forEach((card,index)=>{
-      const relation=links[index];
-      if(relation&&normalize(relation.importance)!==expected)card.remove();
+    const expected=/^principa(?:l|ux|les?)$/.test(requested)?'principal':/^secondair(?:e|es|s)$/.test(requested)?'secondaire':requested;
+    const cards=[...zone.querySelectorAll('.work-character-card-c92')];
+    let visible=0;
+    cards.forEach(card=>{
+      const select=[...card.querySelectorAll('select')].find(el=>[...el.options].some(o=>o.value==='Principal')&&[...el.options].some(o=>o.value==='Secondaire'));
+      const importance=String(select?.value||'Principal').trim().toLowerCase();
+      if(importance!==expected)card.remove();else visible++;
     });
+    // L'ancien message "aucun personnage" concerne la liste non filtree.
+    if(visible)zone.querySelectorAll('.work-character-empty-c92').forEach(el=>el.remove());
   };
   const oldManuscript=renderOeuvreManuscrit;
   renderOeuvreManuscrit=async function(zone){
