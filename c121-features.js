@@ -690,6 +690,62 @@
     characterMediaImportV65.items=characterMediaImportV65.items.filter(x=>!successful.includes(x));
     renderCharacterMediaPreviewV65();
   };
+
+  // C124 : l'oeuvre choisie sert de filtre aux personnages disponibles.
+  let linkedCharactersByWork124=new Map();
+  const mediaImportFiltered124=renderCharacterMediaImportV65;
+  renderCharacterMediaImportV65=async function(zone){
+    await mediaImportFiltered124(zone);
+    const ids=characterMediaImportV65.characters.map(p=>p.id);
+    if(!ids.length)return;
+    const r=await db().from('personnages_oeuvres').select('personnage_id,oeuvre_id').in('personnage_id',ids);
+    if(r.error){console.warn('C124 filtre personnages',r.error);return}
+    linkedCharactersByWork124=new Map();
+    (r.data||[]).forEach(l=>{
+      const key=String(l.oeuvre_id);
+      if(!linkedCharactersByWork124.has(key))linkedCharactersByWork124.set(key,new Set());
+      linkedCharactersByWork124.get(key).add(String(l.personnage_id));
+    });
+    filterMediaCharacters124();
+  };
+  function filterMediaCharacters124(){
+    const root=document.getElementById('character-media-import-zone-v65');
+    if(!root)return;
+    const allIds=new Set(characterMediaImportV65.characters.map(p=>String(p.id)));
+    const rows=[...root.querySelectorAll('.character-media-card-v65')];
+    rows.forEach((card,i)=>{
+      const item=characterMediaImportV65.items[i];
+      if(!item)return;
+      const allowed=item.oeuvre_id?linkedCharactersByWork124.get(String(item.oeuvre_id))||new Set():allIds;
+      const characterSelect=[...card.querySelectorAll('select')].find(sel=>[...sel.options].some(o=>allIds.has(String(o.value))));
+      if(!characterSelect)return;
+      [...characterSelect.options].forEach(option=>{
+        if(!allIds.has(String(option.value)))return;
+        option.hidden=!allowed.has(String(option.value));
+        option.disabled=!allowed.has(String(option.value));
+      });
+      if(item.character_id&&!allowed.has(String(item.character_id))){
+        item.character_id='';
+        characterSelect.value='';
+      }
+      const notice=card.querySelector('.c124-character-count')||document.createElement('small');
+      notice.className='c124-character-count';
+      notice.textContent=item.oeuvre_id?allowed.size+' personnage(s) lié(s) à cette œuvre':'Toutes les fiches personnages';
+      notice.style.cssText='display:block;font-size:11px;opacity:.7;margin-top:3px';
+      characterSelect.after(notice);
+    });
+  }
+  const previewFiltered124=renderCharacterMediaPreviewV65;
+  renderCharacterMediaPreviewV65=function(){
+    previewFiltered124();
+    filterMediaCharacters124();
+    const root=document.getElementById('character-media-import-zone-v65');
+    root?.querySelectorAll('.character-media-card-v65').forEach(card=>{
+      const selects=[...card.querySelectorAll('select')];
+      const work=selects.find(sel=>sel.getAttribute('aria-label')?.startsWith('Œuvre associée'));
+      if(work)work.addEventListener('change',()=>queueMicrotask(filterMediaCharacters124));
+    });
+  };
   const workSelectStyle124=document.createElement('style');
   workSelectStyle124.textContent='#character-media-import-zone-v65 .character-media-bulk-v65{flex-wrap:wrap!important}#character-media-import-zone-v65 .character-media-bulk-v65 select{min-width:0;max-width:280px;width:auto;flex:1 1 190px}#character-media-import-zone-v65 .character-media-card-v65 select{max-width:100%;width:100%;min-width:0}';
   document.head.append(workSelectStyle124);
