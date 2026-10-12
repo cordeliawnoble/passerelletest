@@ -293,25 +293,47 @@
   const mediaRowsStyle122=document.createElement('style');
   mediaRowsStyle122.textContent='.media-grid{columns:auto!important;display:grid!important;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:14px;align-items:start}.media-grid>.media-card{margin:0!important;min-width:0}';
   document.head.append(mediaRowsStyle122);
-  // 4. Tri par chapitre lie, identification stable des cartes par leur ID media.
+  // 4. Ordre de lecture : chaque carte est identifiee par son media_id.
   const workMedia122=renderOeuvreMedias;
   renderOeuvreMedias=async function(zone){
     await workMedia122(zone);
-    const grid=zone.querySelector('.media-grid');if(!grid)return;
-    const cards=[...grid.querySelectorAll('.media-card')];if(cards.length<2)return;
-    const ids=cards.map(card=>{const action=card.getAttribute('onclick')||'';return action.includes('openMediaDrawer(')?action.split('openMediaDrawer(')[1].split(')')[0].replaceAll(String.fromCharCode(39),'').replaceAll(String.fromCharCode(34),'').trim():null});
-    if(ids.some(id=>!id))return console.warn('C122 : IDs medias introuvables');
-    const [media,chapters]=await Promise.all([db().from('medias').select('id,type,chapitre_id').in('id',ids),db().from('chapitres').select('id,numero,ordre').eq('oeuvre_id',currentOeuvreId)]);
-    if(media.error||chapters.error)return console.warn('C122 tri illustrations',media.error||chapters.error);
-    const byId=new Map((media.data||[]).map(m=>[String(m.id),m]));
-    const order=new Map((chapters.data||[]).map((c,i)=>[String(c.id),Number(c.numero??c.ordre??i+1)]));
-    const mapped=cards.map((card,i)=>({card,media:byId.get(ids[i]),i}));
-    const illustrations=mapped.filter(x=>x.media?.type==='Illustration').sort((a,b)=>{
-      const av=order.get(String(a.media.chapitre_id)),bv=order.get(String(b.media.chapitre_id));
-      return (Number.isFinite(av)?av:Infinity)-(Number.isFinite(bv)?bv:Infinity)||a.i-b.i;
+    const grid=zone.querySelector('.media-grid');
+    if(!grid)return;
+    const cards=[...grid.querySelectorAll('.media-card')];
+    if(cards.length<2)return;
+    const ids=cards.map(card=>{
+      const call=card.getAttribute('onclick')||'';
+      const m=call.match(/openMediaDrawer\\(['\"]([^'\"]+)['\"]\\)/);
+      return m?.[1]||null;
     });
-    let n=0;
-    mapped.map(x=>x.media?.type==='Illustration'?illustrations[n++]:x).forEach(x=>grid.appendChild(x.card));
+    if(ids.some(id=>!id))return console.warn('C122 : ID de media non reconnu');
+    const [mediaResult,chapterResult]=await Promise.all([
+      db().from('medias').select('id,type,chapitre_id').in('id',ids),
+      db().from('chapitres').select('id,numero,ordre,titre').eq('oeuvre_id',currentOeuvreId)
+    ]);
+    if(mediaResult.error||chapterResult.error)return console.warn('C122 tri : lecture impossible',mediaResult.error||chapterResult.error);
+    const medias=new Map((mediaResult.data||[]).map(m=>[String(m.id),m]));
+    const chapters=chapterResult.data||[];
+    const num=v=>{if(v==null||String(v).trim()==='')return Infinity;const m=String(v).match(/\\d+(?:[.,]\\d+)?/);return m?Number(m[0].replace(',','.')):Infinity};
+    const chapterMap=new Map(chapters.map((c,i)=>[String(c.id),{order:Number.isFinite(num(c.numero))?num(c.numero):Number.isFinite(num(c.ordre))?num(c.ordre):i+1,title:c.titre||''}]));
+    const ordered=cards.map((card,i)=>({card,i,media:medias.get(String(ids[i]))}));
+    // La galerie Illustration est ordonnee par chapitre, puis ordre stable des images.
+    if(mediaFilter==='Illustration'||ordered.every(x=>x.media?.type==='Illustration')){
+      ordered.sort((a,b)=>{
+        const ca=chapterMap.get(String(a.media?.chapitre_id));
+        const cb=chapterMap.get(String(b.media?.chapitre_id));
+        return (ca?.order??Infinity)-(cb?.order??Infinity)||a.i-b.i;
+      });
+      ordered.forEach(({card,media})=>{
+        card.querySelector('.c122-chapter-label')?.remove();
+        const ch=chapterMap.get(String(media?.chapitre_id));
+        const label=document.createElement('small');label.className='c122-chapter-label';
+        label.style.cssText='display:block;font-weight:600;margin-top:5px;color:var(--accent)';
+        label.textContent=ch?'Chapitre '+ch.order:'Sans chapitre';
+        card.querySelector('.media-meta')?.append(label);
+        grid.appendChild(card);
+      });
+    }
   };
   // 5. Mediatheque personnage : remplacer le fichier sans changer la fiche ni l'ID media.
   const detail122=openCharacterDetailV573;
