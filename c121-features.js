@@ -384,4 +384,29 @@
   };
 
 
+
+  // C123 : filtres et selection stable du catalogue.
+  const filtered123=filteredCharactersV572;
+  filteredCharactersV572=function(){
+    const st=characterCatalogV572,empty=st.work==='__c123_empty__';
+    if(empty)st.work='';
+    let rows;
+    try{rows=filtered123()}finally{if(empty)st.work='__c123_empty__'}
+    if(st.view!=='archives')rows=rows.filter(p=>!p.archive);
+    if(empty)rows=rows.filter(p=>!st.links.some(l=>l.personnage_id===p.id));
+    return rows;
+  };
+  const body123=renderCharacterCatalogBodyV572;
+  renderCharacterCatalogBodyV572=function(){
+    body123();
+    const select=document.querySelectorAll('#personnages-zone .character-filterbar select')[2];
+    if(select){
+      select.add(new Option('Sans œuvre associée','__c123_empty__'),1);
+      if(characterCatalogV572.work==='__c123_empty__')select.value='__c123_empty__';
+    }
+  };
+  const css123=document.createElement('style');
+  css123.textContent='#character-bulk-zone .character-bulkbar{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);z-index:1100;max-width:calc(100vw - 24px);box-shadow:0 7px 25px #0002}';
+  document.head.append(css123);
+
 })();
