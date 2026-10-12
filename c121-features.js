@@ -288,6 +288,11 @@
     });
     const empty=table.querySelector('td[colspan="5"]');if(empty)empty.colSpan=6;
   };
+  // C122 : remplacer les colonnes CSS (lecture verticale) par une grille (lecture horizontale).
+  // Les illustrations suivent maintenant l'ordre gauche -> droite, puis ligne suivante.
+  const mediaRowsStyle122=document.createElement('style');
+  mediaRowsStyle122.textContent='.media-grid{columns:auto!important;display:grid!important;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:14px;align-items:start}.media-grid>.media-card{margin:0!important;min-width:0}';
+  document.head.append(mediaRowsStyle122);
   // 4. Tri par chapitre lie, identification stable des cartes par leur ID media.
   const workMedia122=renderOeuvreMedias;
   renderOeuvreMedias=async function(zone){
