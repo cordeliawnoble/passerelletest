@@ -224,8 +224,12 @@
   };
   function c122LabelImport(){
     const labels=new Map(characterMediaImportV65.characters.map(p=>[p.id,p.c122Label||p.nom]));
-    document.querySelectorAll('#character-media-import-zone-v65 select option, #cm-bulk-character-v65 option').forEach(o=>{if(labels.has(o.value))o.textContent=labels.get(o.value)});
+    document.querySelectorAll('#character-media-import-zone-v65 select option, #cm-bulk-character-v65 option').forEach(o=>{if(labels.has(o.value)){const full=labels.get(o.value);o.title=full;o.textContent=full.length>46?full.slice(0,43)+'…':full}});
   }
+  // Les menus natifs prennent la largeur de leur option la plus longue : borner les libelles.
+  const importSelectStyle122=document.createElement('style');
+  importSelectStyle122.textContent='#character-media-import-zone-v65 select,#cm-bulk-character-v65{max-width:100%!important;min-width:0!important;width:100%;text-overflow:ellipsis;overflow:hidden}#character-media-import-zone-v65 select option,#cm-bulk-character-v65 option{max-width:100%}';
+  document.head.append(importSelectStyle122);
   const preview122=renderCharacterMediaPreviewV65;
   renderCharacterMediaPreviewV65=function(){preview122();c122LabelImport()};
   // 2. Filtre : lire les associations, pas les libelles ni la position des cartes.
