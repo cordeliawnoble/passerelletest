@@ -409,4 +409,9 @@
   css123.textContent='#character-bulk-zone .character-bulkbar{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);z-index:1100;max-width:calc(100vw - 24px);box-shadow:0 7px 25px #0002}';
   document.head.append(css123);
 
+  // C123 Codex image sans degradé.
+  const codexStyle123=document.createElement('style');
+  codexStyle123.textContent='.codex-card-shell-v39b .entity-card{background:var(--card)!important}';
+  document.head.append(codexStyle123);
+
 })();
