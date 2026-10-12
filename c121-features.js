@@ -219,4 +219,243 @@
   };
   window.archiveChantierDocC121=async(id,archive)=>{const r=await db().from('documents_chantier').update({archive,updated_at:new Date().toISOString()}).eq('id',id);if(r.error)return alert(r.error.message);await renderChantierDocsC121();};
   window.deleteChantierDocC121=async id=>{if(!confirm('Supprimer définitivement ce document ?'))return;const r=await db().from('documents_chantier').delete().eq('id',id);if(r.error)return alert(r.error.message);await renderChantierDocsC121();};
+})();  const oldManuscript=renderOeuvreManuscrit;
+  renderOeuvreManuscrit=async function(zone){
+    await oldManuscript(zone);
+    if(!zone.querySelector('#c121-chapter-picker')){const picker=document.createElement('button');picker.id='c121-chapter-picker';picker.className='btn-secondary';picker.textContent='✏️ Modifier un chapitre';picker.style.cssText='margin:10px 0';picker.onclick=()=>openChapterPickerC121();zone.prepend(picker)}
+    const trs=[...zone.querySelectorAll('.manuscript-table tbody tr')].filter(tr=>!tr.classList.contains('manuscript-summary-row'));if(!trs.length)return;
+    const r=await db().from('chapitres').select('id,numero,ordre,nb_mots,etat,statut').eq('oeuvre_id',currentOeuvreId).order('ordre');if(r.error)return;
+    const rows=(r.data||[]).filter(c=>Number(c.nb_mots)>0||/écrit|ecrit|rédig|redig|relu|termin/i.test(String(c.etat||c.statut||'')));
+    trs.forEach((tr,i)=>{if(!rows[i])return;const b=document.createElement('button');b.className='btn-secondary';b.textContent='✏️ Modifier';b.style.marginLeft='6px';b.onclick=()=>openManuscriptEditC121(rows[i].id);tr.lastElementChild.append(b)});
+  };
+  // Point d'entree explicite, independant de la structure du tableau manuscrit.
+  window.openChapterPickerC121=async()=>{
+    const r=await db().from('chapitres').select('id,titre,numero,ordre').eq('oeuvre_id',currentOeuvreId).order('ordre');
+    if(r.error)return alert('Chapitres : '+r.error.message);
+    const list=r.data||[];
+    openDrawer('Modifier un chapitre','<div class="c121-editor"><p>Choisis le chapitre à modifier individuellement, sans réimporter le manuscrit.</p>'+list.map(c=>'<button class="btn-secondary" style="display:block;width:100%;margin:5px 0;text-align:left" onclick="openManuscriptEditC121(\''+c.id+'\')">'+esc((c.numero??c.ordre??'')+' · '+(c.titre||'Chapitre'))+'</button>').join('')+'</div>');
+  };
+  window.openManuscriptEditC121=async id=>{
+    const r=await db().from('chapitres').select('*').eq('id',id).single();if(r.error)return alert(r.error.message);const c=r.data;
+    openDrawer('Modifier le chapitre '+esc(c.numero??c.ordre??''),'<div class="c121-editor">'+
+      '<label>Titre<input id="c121-title" value="'+esc(c.titre)+'"></label>'+
+      '<label>Mots<input id="c121-words" type="number" min="0" value="'+Number(c.nb_mots||0)+'"></label>'+
+      '<label>État<select id="c121-etat">'+['À écrire','En cours','Rédigé','Révisé'].map(s=>'<option'+(s===(c.etat||c.statut)?' selected':'')+'>'+s+'</option>').join('')+'</select></label>'+
+      '<label>Date d’écriture<input id="c121-date" type="date" value="'+esc(String(c.date_ecriture||'').slice(0,10))+'"></label>'+
+      '<label>Résumé réellement écrit<textarea id="c121-resume">'+esc(c.resume||'')+'</textarea></label>'+
+      '<p class="status-line">Après enregistrement, les champs de ce chapitre ne seront plus écrasés par Atelier. Tu peux lever cette protection.</p>'+
+      '<button class="btn-primary" onclick="saveManuscriptEditC121(\''+id+'\')">Enregistrer ce chapitre</button>'+
+      '<button class="btn-secondary" onclick="unlockManuscriptC121(\''+id+'\')">↺ Réautoriser la synchro Atelier</button></div>');
+  };
+  window.saveManuscriptEditC121=async id=>{
+    const fields={titre:document.getElementById('c121-title').value.trim(),nb_mots:Math.max(0,Number(document.getElementById('c121-words').value)||0),etat:document.getElementById('c121-etat').value,date_ecriture:document.getElementById('c121-date').value||null,resume:document.getElementById('c121-resume').value.trim()||null};
+    if(!fields.titre)return alert('Le titre est obligatoire.');
+    const r=await db().from('chapitres').update(fields).eq('id',id);if(r.error)return alert(r.error.message);
+    const l=await db().from('chapitres_manuels').upsert({chapitre_id:id,oeuvre_id:currentOeuvreId,user_id:currentUser.id,champs:Object.keys(fields),updated_at:new Date().toISOString()},{onConflict:'chapitre_id'});
+    if(l.error)return alert('Changements enregistrés, mais protection Atelier indisponible : '+l.error.message);
+    closeDrawer();await renderOeuvreManuscrit(document.getElementById('oeuvre-tab-content'));
+  };
+  window.unlockManuscriptC121=async id=>{
+    if(!confirm('Autoriser à nouveau Atelier à remplacer les champs de ce chapitre ?'))return;
+    const r=await db().from('chapitres_manuels').delete().eq('chapitre_id',id);if(r.error)return alert(r.error.message);
+    closeDrawer();alert('Protection retirée.');
+  };
+  let mode='postits',docs=[];
+  const oldChantier=renderOeuvreChantierC97;
+  renderOeuvreChantierC97=async function(zone){
+    await oldChantier(zone);
+    const html=zone.innerHTML;
+    zone.innerHTML='<div class="c121-tabs"><button id="c121-postit-btn" onclick="showChantierModeC121(\'postits\')">🗒️ Post-it</button><button id="c121-doc-btn" onclick="showChantierModeC121(\'documents\')">📄 Documents</button></div><div id="c121-postits">'+html+'</div><div id="c121-documents" style="display:none"></div>';
+    showChantierModeC121(mode);
+  };
+  window.showChantierModeC121=next=>{
+    mode=next;document.getElementById('c121-postits').style.display=next==='postits'?'':'none';document.getElementById('c121-documents').style.display=next==='documents'?'':'none';
+    document.getElementById('c121-postit-btn').classList.toggle('active',next==='postits');document.getElementById('c121-doc-btn').classList.toggle('active',next==='documents');
+    if(next==='documents')renderChantierDocsC121();
+  };
+  window.renderChantierDocsC121=async()=>{
+    const z=document.getElementById('c121-documents');if(!z)return;z.innerHTML='<div class="status-line">Chargement…</div>';
+    const r=await db().from('documents_chantier').select('*').eq('oeuvre_id',currentOeuvreId).order('updated_at',{ascending:false});
+    if(r.error){z.innerHTML='<div class="panel">Documents indisponibles : '+esc(r.error.message)+'<p>Migration SQL C121 nécessaire.</p></div>';return;}
+    docs=r.data||[];
+    z.innerHTML='<section class="panel"><div class="work-toolbar"><div><h2>📄 Documents de travail</h2><p>Plans provisoires et brouillons longs. Le Plan officiel reste intact.</p></div><button class="btn-primary" onclick="editChantierDocC121()">+ Nouveau document</button></div><div class="c121-tabs"><button onclick="listChantierDocsC121(false)">Actifs</button><button onclick="listChantierDocsC121(true)">Archivés</button></div><div id="c121-doc-list"></div><div id="c121-doc-editor"></div></section>';
+    listChantierDocsC121(false);
+  };
+  window.listChantierDocsC121=archived=>{
+    const z=document.getElementById('c121-doc-list');if(!z)return;
+    z.innerHTML=docs.filter(x=>!!x.archive===!!archived).map(x=>'<div class="c121-doc"><div><strong>'+esc(x.titre)+'</strong><div class="status-line">'+(x.contenu||'').length+' caractères · '+esc(x.updated_at?.slice(0,10)||'')+'</div></div><button class="btn-secondary" onclick="viewChantierDocC121(\''+x.id+'\')">👁️ Consulter</button></div>').join('')||'<p class="empty">Aucun document ici.</p>';
+  };
+    window.viewChantierDocC121=id=>{
+    const d=docs.find(x=>x.id===id),z=document.getElementById('c121-doc-editor');
+    if(!d||!z)return;
+    const safeContent=esc(d.contenu||'').replace(/\r\n?/g,'\n');
+    z.innerHTML='<article class="c121-editor"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h3>'+esc(d.titre)+'</h3><button class="btn-secondary" onclick="editChantierDocC121(\''+id+'\')">✏️ Modifier</button></div><div style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.75;max-height:70vh;overflow:auto">'+(safeContent||'<em>Document vide.</em>')+'</div><button class="btn-secondary" onclick="document.getElementById(\'c121-doc-editor\').innerHTML=\'\'">Fermer</button></article>';
+    z.scrollIntoView({block:'nearest'});
+  };
+  window.editChantierDocC121=(id='')=>{
+    const d=docs.find(x=>x.id===id)||{},z=document.getElementById('c121-doc-editor');
+    z.innerHTML='<div class="c121-editor"><h3>'+(id?'Modifier':'Nouveau document')+'</h3><label>Titre<input id="c121-doc-title" value="'+esc(d.titre||'')+'" placeholder="Plan provisoire V0"></label><label>Contenu<textarea id="c121-doc-text" placeholder="Colle ton texte ici…">'+esc(d.contenu||'')+'</textarea></label><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-primary" onclick="saveChantierDocC121(\''+id+'\')">Enregistrer</button><button class="btn-secondary" onclick="document.getElementById(\'c121-doc-editor\').innerHTML=\'\'">Annuler</button>'+
+      (id?'<button class="btn-secondary" onclick="archiveChantierDocC121(\''+id+'\','+(!d.archive)+')">'+(d.archive?'Restaurer':'Archiver')+'</button><button class="btn-secondary" onclick="deleteChantierDocC121(\''+id+'\')">Supprimer</button>':'')+'</div></div>';
+    z.scrollIntoView({block:'nearest'});
+  };
+  window.saveChantierDocC121=async id=>{
+    const titre=document.getElementById('c121-doc-title').value.trim(),contenu=document.getElementById('c121-doc-text').value;if(!titre)return alert('Titre obligatoire.');
+    const changes={titre,contenu,updated_at:new Date().toISOString()};
+    const r=id?await db().from('documents_chantier').update(changes).eq('id',id):await db().from('documents_chantier').insert({...changes,oeuvre_id:currentOeuvreId,user_id:currentUser.id});
+    if(r.error)return alert(r.error.message);await renderChantierDocsC121();
+  };
+  window.archiveChantierDocC121=async(id,archive)=>{const r=await db().from('documents_chantier').update({archive,updated_at:new Date().toISOString()}).eq('id',id);if(r.error)return alert(r.error.message);await renderChantierDocsC121();};
+  window.deleteChantierDocC121=async id=>{if(!confirm('Supprimer définitivement ce document ?'))return;const r=await db().from('documents_chantier').delete().eq('id',id);if(r.error)return alert(r.error.message);await renderChantierDocsC121();};
+
+  // C122 · Livraison groupee. Aucune migration de donnees.
+  const c122Style=document.createElement('style');
+  c122Style.textContent='.c122-actions{display:flex;gap:6px;flex-wrap:wrap;margin:9px 0}.c122-actions button{font-size:12px}.c122-importance{min-width:105px;max-width:145px;font-size:12px;padding:5px}.c122-media-row{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding:9px 0}.c122-media-row img{width:56px;height:66px;object-fit:cover;border-radius:7px}.c122-media-row>div{flex:1;min-width:0}';
+  document.head.append(c122Style);
+  const norm122=v=>String(v??'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const c122Role=v=>{const n=norm122(v);return n==='principal'||n==='principaux'?'principal':n==='secondaire'||n==='secondaires'?'secondaire':n};
+  const c122Active=p=>!(p?.archive===true||p?.archive===1||p?.archive==='true'||p?.archived===true||p?.est_archive===true||p?.statut_archive===true);
+  // 1. Import en masse : etiquettes distinctives par oeuvre, valeur = ID personnage.
+  const import122=renderCharacterMediaImportV65;
+  renderCharacterMediaImportV65=async function(zone){
+    await import122(zone);
+    const ids=characterMediaImportV65.characters.map(x=>x.id);
+    if(!ids.length)return;
+    const [relations,works]=await Promise.all([db().from('personnages_oeuvres').select('personnage_id,oeuvre_id').in('personnage_id',ids),db().from('oeuvres').select('id,titre')]);
+    if(relations.error||works.error){console.warn('C122 etiquettes œuvres',relations.error||works.error);return}
+    const titles=new Map((works.data||[]).map(x=>[x.id,x.titre]));
+    const byPerson=new Map();
+    (relations.data||[]).forEach(x=>{const t=titles.get(x.oeuvre_id);if(t){if(!byPerson.has(x.personnage_id))byPerson.set(x.personnage_id,new Set());byPerson.get(x.personnage_id).add(t)}});
+    characterMediaImportV65.characters.forEach(p=>p.c122Label=p.nom+' · '+([...byPerson.get(p.id)||[]].join(' / ')||'Sans œuvre liée'));
+    c122LabelImport();
+  };
+  function c122LabelImport(){
+    const labels=new Map(characterMediaImportV65.characters.map(p=>[p.id,p.c122Label||p.nom]));
+    document.querySelectorAll('#character-media-import-zone-v65 select option, #cm-bulk-character-v65 option').forEach(o=>{if(labels.has(o.value))o.textContent=labels.get(o.value)});
+  }
+  const preview122=renderCharacterMediaPreviewV65;
+  renderCharacterMediaPreviewV65=function(){preview122();c122LabelImport()};
+  // 2. Filtre : lire les associations, pas les libelles ni la position des cartes.
+  // Le moteur original sait deja filtrer les valeurs canoniques principal/secondaire.
+  // Le correctif C121 compare a tort des valeurs au pluriel et perd les correspondances.
+  const people122=renderOeuvrePersonnages;
+  renderOeuvrePersonnages=async function(zone){
+    const wanted=c122Role(personnageFilter);
+    personnageFilter='tous';
+    try{await people122(zone)}finally{personnageFilter=wanted}
+    const links=opoLinks||[];
+    const cards=[...zone.querySelectorAll('.work-character-card-c92')];
+    const all=links.filter(x=>c122Active(x.personnages));
+    const visible=new Set(all.filter(x=>wanted==='tous'||c122Role(x.importance||'principal')===wanted).map(x=>String(x.personnage_id)));
+    cards.forEach((card,i)=>{
+      // L'ancien rendu suit l'ordre des associations (avant le masquage des archives).
+      const link=links[i];
+      if(!link||!visible.has(String(link.personnage_id)))card.remove();
+    });
+    zone.querySelectorAll('.work-toolbar .segmented button').forEach(btn=>{
+      const label=norm122(btn.textContent);
+      btn.classList.toggle('active',label==='tous'?wanted==='tous':label==='principaux'?wanted==='principal':label==='secondaires'?wanted==='secondaire':false);
+    });
+    const grid=zone.querySelector('#work-character-gallery');
+    if(grid&&!grid.querySelector('.work-character-card-c92'))grid.insertAdjacentHTML('beforeend','<p class="empty c122-empty">Aucun personnage dans cette catégorie.</p>');
+  };
+  // 3. Table complete : aucune description, importance editable par oeuvre.
+  const catalog122=renderCharacterCatalogResultsV572;
+  renderCharacterCatalogResultsV572=function(){
+    catalog122();
+    if(characterCatalogV572.view!=='table')return;
+    const table=document.querySelector('#character-results table');if(!table)return;
+    const th=table.querySelector('thead tr');if(!th||th.querySelector('.c122-col'))return;
+    const heading=document.createElement('th');heading.className='c122-col';heading.textContent='Importance';th.insertBefore(heading,th.children[3]);
+    const people=filteredCharactersV572();
+    [...table.querySelectorAll('tbody tr')].forEach((tr,i)=>{
+      const p=people[i];if(!p)return;
+      const nameCell=tr.children[1];if(nameCell){nameCell.querySelectorAll('br,span').forEach(el=>el.remove())}
+      const cell=document.createElement('td');cell.className='c122-col';
+      const links=characterRelationsV572(p.id);
+      links.forEach(link=>{
+        const row=document.createElement('div');row.style.cssText='display:flex;gap:5px;align-items:center;margin:3px 0;flex-wrap:wrap';
+        const label=document.createElement('small');label.textContent=link.work?.titre||'Œuvre';label.style.maxWidth='125px';
+        const select=document.createElement('select');select.className='c122-importance';
+        for(const [v,t] of [['principal','Principal'],['secondaire','Secondaire']]){const o=document.createElement('option');o.value=v;o.textContent=t;select.append(o)}
+        select.value=c122Role(link.importance)==='secondaire'?'secondaire':'principal';
+        select.onchange=async()=>{
+          select.disabled=true;
+          const r=await db().from('personnages_oeuvres').update({importance:select.value}).eq('personnage_id',p.id).eq('oeuvre_id',link.oeuvre_id);
+          if(r.error){alert('Importance non enregistrée : '+r.error.message);select.value=c122Role(link.importance)==='secondaire'?'secondaire':'principal'}
+          else link.importance=select.value;
+          select.disabled=false;
+        };
+        row.append(label,select);cell.append(row);
+      });
+      if(!links.length)cell.textContent='—';
+      tr.insertBefore(cell,tr.children[3]);
+    });
+    const empty=table.querySelector('td[colspan="5"]');if(empty)empty.colSpan=6;
+  };
+  // 4. Galerie oeuvre : ordre de chapitre reel, non du nom du fichier.
+  const workMedia122=renderOeuvreMedias;
+  renderOeuvreMedias=async function(zone){
+    await workMedia122(zone);
+    const grid=zone.querySelector('.media-grid');if(!grid)return;
+    const cards=[...grid.querySelectorAll('.media-card')];if(!cards.length)return;
+    const [media,chapters]=await Promise.all([db().from('medias').select('id,type,chapitre_id,created_at').eq('oeuvre_id',currentOeuvreId).order('created_at',{ascending:false}),db().from('chapitres').select('id,numero,ordre').eq('oeuvre_id',currentOeuvreId)]);
+    if(media.error||chapters.error)return console.warn('C122 tri medias',media.error||chapters.error);
+    const order=new Map((chapters.data||[]).map((c,i)=>[String(c.id),Number(c.numero??c.ordre??i+1)]));
+    const rows=(media.data||[]).filter(m=>mediaFilter==='Tout'||m.type===mediaFilter);
+    const mapped=cards.map((card,i)=>({card,m:rows[i],i}));
+    mapped.sort((a,b)=>{
+      if(a.m?.type!=='Illustration'||b.m?.type!=='Illustration')return a.i-b.i;
+      const av=order.get(String(a.m.chapitre_id)),bv=order.get(String(b.m.chapitre_id));
+      return (Number.isFinite(av)?av:Infinity)-(Number.isFinite(bv)?bv:Infinity)||a.i-b.i;
+    });
+    mapped.forEach(x=>grid.append(x.card));
+  };
+  // 5. Mediatheque personnage : remplacer le fichier sans changer la fiche ni l'ID media.
+  const detail122=openCharacterDetailV573;
+  openCharacterDetailV573=async function(id,tab='apercu',contextWorkId=null){
+    await detail122(id,tab,contextWorkId);
+    const container=document.querySelector('.character-detail');if(!container)return;
+    const actions=container.querySelector('.character-hero-actions');
+    if(actions&&!actions.querySelector('.c122-open-media')){
+      const btn=document.createElement('button');btn.className='btn-secondary c122-open-media';btn.textContent='🖼 Gérer les images';
+      btn.onclick=()=>c122OpenCharacterMedia(id);
+      actions.append(btn);
+    }
+  };
+  window.c122OpenCharacterMedia=async function(id){
+    const r=await db().from('medias').select('id,url,titre,type').eq('personnage_id',id).order('created_at',{ascending:false});
+    if(r.error)return alert(r.error.message);
+    const rows=r.data||[];
+    openDrawer('Images du personnage',rows.length?rows.map(m=>'<div class="c122-media-row">'+(m.url?'<img src="'+esc(m.url)+'" alt="">':'')+'<div><strong>'+esc(m.titre||m.type||'Visuel')+'</strong><small style="display:block">'+esc(m.type||'')+'</small><div class="c122-actions"><label class="btn-secondary" style="cursor:pointer">🔄 Remplacer<input type="file" accept="image/png,image/jpeg,image/webp" hidden onchange="c122ReplaceMedia(\''+m.id+'\',\''+id+'\',this)"></label><button class="btn-secondary" onclick="c122DeleteMedia(\''+m.id+'\',\''+id+'\')">🗑 Supprimer</button></div></div></div>').join(''):'<p>Aucun média lié à ce personnage.</p>');
+  };
+  window.c122ReplaceMedia=async function(mediaId,characterId,input){
+    const file=input.files?.[0];if(!file)return;
+    if(!/^image\/(png|jpeg|webp)$/.test(file.type))return alert('Choisis une image PNG, JPG ou WebP.');
+    input.disabled=true;
+    try{
+      const old=await db().from('medias').select('url').eq('id',mediaId).eq('personnage_id',characterId).single();
+      if(old.error)throw old.error;
+      const url=await uploadAssetFile(file,'personnages/c122',{throwOnError:true});
+      if(!url)throw Error('Import du fichier impossible');
+      const update=await db().from('medias').update({url}).eq('id',mediaId).eq('personnage_id',characterId);
+      if(update.error)throw update.error;
+      const p=await db().from('personnages').select('portrait_url,banniere_url,avatar_site_url').eq('id',characterId).single();
+      if(!p.error&&p.data){
+        const fields={};for(const k of ['portrait_url','banniere_url','avatar_site_url'])if(p.data[k]===old.data.url)fields[k]=url;
+        if(Object.keys(fields).length){const u=await db().from('personnages').update(fields).eq('id',characterId);if(u.error)alert('Image remplacée, mais la fiche nécessite une actualisation : '+u.error.message)}
+      }
+      await c122OpenCharacterMedia(characterId);
+    }catch(e){alert('Remplacement annulé : '+(e.message||e));input.disabled=false}
+  };
+  window.c122DeleteMedia=async function(mediaId,characterId){
+    if(!confirm('Supprimer cette image de la médiathèque du personnage ? Cette action ne supprime pas le personnage.'))return;
+    const old=await db().from('medias').select('url').eq('id',mediaId).eq('personnage_id',characterId).single();
+    if(old.error)return alert(old.error.message);
+    const del=await db().from('medias').delete().eq('id',mediaId).eq('personnage_id',characterId);
+    if(del.error)return alert(del.error.message);
+    const p=await db().from('personnages').select('portrait_url,banniere_url,avatar_site_url').eq('id',characterId).single();
+    if(!p.error&&p.data){const fields={};for(const k of ['portrait_url','banniere_url','avatar_site_url'])if(p.data[k]===old.data.url)fields[k]=null;if(Object.keys(fields).length){const u=await db().from('personnages').update(fields).eq('id',characterId);if(u.error)alert('Image supprimée, mais référence fiche non nettoyée : '+u.error.message)}}
+    await c122OpenCharacterMedia(characterId);
+  };
+
 })();
