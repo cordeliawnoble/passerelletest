@@ -503,6 +503,11 @@
   };
 
 
+  // C123 : la barre de selection est une barre compacte, pas une modale plein ecran.
+  const bulkCompact123=document.createElement('style');
+  bulkCompact123.textContent='#character-bulk-zone{position:fixed!important;inset:auto 16px 16px auto!important;top:auto!important;left:auto!important;right:16px!important;bottom:16px!important;width:max-content!important;max-width:calc(100vw - 32px)!important;height:auto!important;min-height:0!important;max-height:110px!important;overflow:visible!important;display:block!important;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;pointer-events:none!important;z-index:1050!important}#character-bulk-zone .character-bulkbar{position:relative!important;inset:auto!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;transform:none!important;width:max-content!important;max-width:100%!important;height:auto!important;min-height:0!important;padding:10px 14px!important;border-radius:12px!important;pointer-events:auto!important;background:var(--card)!important;box-shadow:0 6px 24px #0002!important}#character-bulk-zone .character-linker-c58{pointer-events:auto!important}';
+  document.head.append(bulkCompact123);
+
   // C123 : consultation rapide en panneau lateral droit, sans navigation.
   const quickStyle123=document.createElement('style');
   quickStyle123.textContent='.c123-quick-backdrop{position:fixed;inset:0;background:rgba(20,15,30,.24);z-index:2000}.c123-quick-panel{position:fixed;right:0;top:0;bottom:0;width:min(440px,95vw);background:var(--card);z-index:2001;box-shadow:-12px 0 40px #0002;overflow:auto;padding:22px}.c123-quick-header{display:flex;justify-content:space-between;gap:12px;align-items:center}.c123-quick-portrait{width:100%;max-height:300px;object-fit:contain;background:var(--bg-2);border-radius:12px;margin:14px 0}.c123-quick-section{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}.c123-quick-panel .tag{display:inline-block;margin:3px}';
