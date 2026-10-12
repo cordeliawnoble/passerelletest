@@ -348,8 +348,10 @@
     const visible=new Set(all.filter(x=>wanted==='tous'||c122Role(x.importance||'principal')===wanted).map(x=>String(x.personnage_id)));
     cards.forEach((card,i)=>{
       // L'ancien rendu suit l'ordre des associations (avant le masquage des archives).
-      const link=links[i];
-      if(!link||!visible.has(String(link.personnage_id)))card.remove();
+      const onclick=card.getAttribute('onclick')||'';
+      const match=onclick.match(/openCharacterFromWorkV575\(['\"]([^'\"]+)/);
+      const id=match?.[1]||links[i]?.personnage_id;
+      if(!id||!visible.has(String(id)))card.remove();
     });
     zone.querySelectorAll('.work-toolbar .segmented button').forEach(btn=>{
       const label=norm122(btn.textContent);
