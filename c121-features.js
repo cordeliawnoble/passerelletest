@@ -174,6 +174,18 @@
       if(box){head.textContent='';head.append(box,document.createTextNode(' Œuvre'))}
     }
   };
+
+  // C128 : case et titre sur une seule ligne dans la premiere colonne.
+  const checkboxStyle128=document.createElement('style');
+  checkboxStyle128.textContent=`
+    .c121-edl .c121-table th:first-child,
+    .c121-edl .c121-table td:first-child{vertical-align:middle!important}
+    .c121-edl .c121-table th:first-child input[type="checkbox"],
+    .c121-edl .c121-table td:first-child input[type="checkbox"]{float:left!important;display:block!important;margin:2px 10px 0 0!important;width:16px!important;height:16px!important;position:static!important}
+    .c121-edl .c121-table td:first-child .c121-work-link{display:block!important;overflow:hidden!important;line-height:1.35!important}
+    .c121-edl .c121-table th:first-child{line-height:20px!important}
+  `;
+  document.head.append(checkboxStyle128);
   window.saveEDLC121=async(id,k,etat,select)=>{
     select.disabled=true;
     const r=etat?await db().from('edl_evaluations').upsert({oeuvre_id:id,critere:k,etat,user_id:currentUser.id,updated_at:new Date().toISOString()},{onConflict:'oeuvre_id,critere'}):await db().from('edl_evaluations').delete().eq('oeuvre_id',id).eq('critere',k);
