@@ -81,6 +81,7 @@
   const nav0=navigate;
   navigate=function(key){if(key==='edl'){resetTheme();setActiveNav(key);renderEDLC121();return;}return nav0(key)};
   let edlRows=[],overrides={},sagaNames={},sousNames={};
+  const edlSelected126=new Set();
   const code=(id,k)=>id+'::'+k;
   const auto=(w,p,l,kw)=>{
     const infos=[w.genre,w.format_cible||w.format,w.statut,w.tonalite,w.temporalite,w.lieu_principal,w.public_cible];
@@ -100,21 +101,41 @@
     (l.data||[]).forEach(x=>lCount[x.oeuvre_id]=(lCount[x.oeuvre_id]||0)+1);
     edlRows=(w.data||[]).filter(x=>!x.archive).map(x=>({w:x,defaults:auto(x,pCount[x.id]||0,lCount[x.id]||0,kCount[x.id]||0)}));
     overrides=Object.fromEntries((e.data||[]).map(x=>[code(x.oeuvre_id,x.critere),x.etat]));
+    edlSelected126.clear();
+    const [sg,ss]=await Promise.all([db().from('sagas').select('id,nom'),db().from('sous_sagas').select('id,nom,saga_id')]);
+    sagaNames=Object.fromEntries((sg.data||[]).map(x=>[x.id,x.nom]));
+    sousNames=Object.fromEntries((ss.data||[]).map(x=>[x.id,x.nom]));
     root.innerHTML='<style>.c121-edl{font-size:13px}.c121-edl .c121-edl-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}.c121-edl h1{margin:0;font-size:27px}.c121-edl p{margin:4px 0;color:var(--muted,#756c86)}.c121-edl-filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.c121-edl-filters input{width:240px;max-width:100%;padding:9px 12px;border:1px solid var(--line,#ddd);border-radius:9px;background:var(--card,#fff);color:var(--text,#302638)}.c121-edl-filters select{max-width:150px;padding:9px;border:1px solid var(--line,#ddd);border-radius:9px;background:var(--card,#fff);color:var(--text,#302638)}.c121-edl .c121-overflow{overflow-x:auto}.c121-edl .c121-table{table-layout:fixed;min-width:780px;width:100%;font-size:12px}.c121-edl .c121-table th,.c121-edl .c121-table td{padding:9px 7px;white-space:normal;vertical-align:middle}.c121-edl .c121-table th:first-child{width:25%}.c121-edl .c121-table th:not(:first-child){width:15%}.c121-edl .c121-table select{width:100%;max-width:100%;font-size:11px;padding:6px 3px;min-width:0}.c121-edl .c121-work-link{border:0;background:transparent;color:var(--text,#302638);text-align:left;cursor:pointer;font:600 13px inherit;overflow-wrap:anywhere}.c121-edl .c121-work-link:hover{text-decoration:underline} .c121-edl .c121-edl-note{font-size:12px;margin-top:12px}.c121-edl .c121-state-field{display:flex;align-items:center;gap:5px;min-width:0;padding:3px 5px;border:1px solid var(--line,#e5ddec);border-radius:9px}.c121-edl .c121-state-dot{width:10px;height:10px;min-width:10px;border-radius:50%;box-shadow:0 0 0 2px #fff8}.c121-edl .c121-state-field select{border:0;background:transparent;padding:4px 0;flex:1;min-width:0;outline-offset:2px}</style>'+
-    '<section class="c121-edl"><div class="c121-edl-head"><div><h1>🌱 État des lieux</h1><p>Diagnostic automatique, appréciations modifiables.</p></div><div class="c121-edl-filters"><input id="c121-q" placeholder="Rechercher une œuvre…" oninput="filterEDLC121()"><select id="c121-state" onchange="filterEDLC121()"><option value="">Tous les états</option>'+states.map(x=>'<option>'+x+'</option>').join('')+'</select><select id="c121-criterion" onchange="filterEDLC121()"><option value="">Tous les critères</option>'+criteria.map(([k,t])=>'<option value="'+k+'">'+t+'</option>').join('')+'</select></div></div>'+
-    '<div class="panel c121-overflow"><table class="c121-table"><thead><tr><th>Œuvre</th>'+criteria.map(x=>'<th>'+x[1]+'</th>').join('')+'</tr></thead><tbody id="c121-edl-body"></tbody></table></div><p class="c121-edl-note">Les valeurs « Auto » proviennent des fiches. Tu peux les corriger à tout moment ; ton choix enregistré prime sur le diagnostic automatique. « À qualifier » ne signifie pas urgent.</p></section>';
+    '<section class="c121-edl"><div class="c121-edl-head"><div><h1>🌱 État des lieux</h1><p>Diagnostic automatique, appréciations modifiables.</p></div><div class="c121-edl-filters"><input id="c121-q" placeholder="Rechercher une œuvre…" oninput="filterEDLC121()"><select id="c121-state" onchange="filterEDLC121()"><option value="">Tous les états</option>'+states.map(x=>'<option>'+x+'</option>').join('')+'</select><select id="c121-criterion" onchange="filterEDLC121()"><option value="">Toutes les colonnes</option>'+criteria.map(([k,t])=>'<option value="'+k+'">'+t+'</option>').join('')+'</select><select id="c126-saga" onchange="filterEDLC121()"><option value="">Toutes les sagas</option>'+Object.entries(sagaNames).map(([id,n])=>'<option value="'+esc(id)+'">'+esc(n)+'</option>').join('')+'</select><select id="c126-sous" onchange="filterEDLC121()"><option value="">Toutes les sous-sagas</option>'+Object.entries(sousNames).map(([id,n])=>'<option value="'+esc(id)+'">'+esc(n)+'</option>').join('')+'</select></div></div>'+
+    '<div class="panel" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><button class="btn-secondary" onclick="selectVisibleEDL126(true)">Cocher les œuvres affichées</button><button class="btn-secondary" onclick="selectVisibleEDL126(false)">Décocher</button><select id="c126-bulk-column"><option value="">Toutes les colonnes</option>'+criteria.map(([k,t])=>'<option value="'+k+'">'+t+'</option>').join('')+'</select><select id="c126-bulk-state"><option value="">Choisir un état…</option>'+states.map(x=>'<option>'+x+'</option>').join('')+'</select><button class="btn-primary" onclick="bulkEDL126()">Appliquer aux œuvres cochées</button><span id="c126-count">0 sélectionnée(s)</span></div><div class="panel c121-overflow"><table class="c121-table"><thead><tr><th><input type="checkbox" aria-label="Tout sélectionner" onchange="selectVisibleEDL126(this.checked)"> Œuvre</th>'+criteria.map(x=>'<th>'+x[1]+'</th>').join('')+'</tr></thead><tbody id="c121-edl-body"></tbody></table></div><p class="c121-edl-note">Les valeurs « Auto » proviennent des fiches. Tu peux les corriger à tout moment ; ton choix enregistré prime sur le diagnostic automatique. « À qualifier » ne signifie pas urgent.</p></section>';
     filterEDLC121();
   };
   window.filterEDLC121=()=>{
     const q=(document.getElementById('c121-q')?.value||'').toLowerCase(),s=document.getElementById('c121-state')?.value||'',c=document.getElementById('c121-criterion')?.value||'',b=document.getElementById('c121-edl-body');if(!b)return;
-    const filtered=edlRows.filter(({w,defaults})=>String([w.titre,w.genre,w.statut].join(' ')).toLowerCase().includes(q)&&(!s||(c?[c]:criteria.map(x=>x[0])).some(k=>(overrides[code(w.id,k)]||defaults[k])===s)));
+    const saga=document.getElementById('c126-saga')?.value||'',sous=document.getElementById('c126-sous')?.value||'';
+    const filtered=edlRows.filter(({w,defaults})=>String([w.titre,w.genre,w.statut].join(' ')).toLowerCase().includes(q)&&(!saga||String(w.saga_id||'')===saga)&&(!sous||String(w.sous_saga_id||w.soussaga_id||'')===sous)&&(!s||(c?[c]:criteria.map(x=>x[0])).some(k=>(overrides[code(w.id,k)]||defaults[k])===s)));
+    window.edlVisible126=filtered.map(x=>String(x.w.id));
+    const counter=document.getElementById('c126-count');if(counter)counter.textContent=edlSelected126.size+' sélectionnée(s)';
     const colors={'Complet':'#45a878','À qualifier':'#f3b23d','Sommaire':'#ee9c43','Non renseigné':'#ec477a','Non nécessaire':'#9b82d6'};
     const stateSelect=(id,k,title,defaults)=>{
       const current=overrides[code(id,k)]||defaults,manual=!!overrides[code(id,k)];
       const dot='<span class="c121-state-dot" style="background:'+colors[current]+'"></span>';
       return '<div class="c121-state-field">'+dot+'<select aria-label="'+esc(k)+' pour '+esc(title)+'" title="'+(manual?'Appréciation manuelle':'Diagnostic automatique')+' : '+esc(current)+'" onchange="saveEDLC121(\''+id+'\',\''+k+'\',this.value,this)"><option value="">Auto : '+esc(defaults)+'</option>'+states.map(st=>'<option value="'+st+'"'+(overrides[code(id,k)]===st?' selected':'')+'>'+st+'</option>').join('')+'</select></div>';
     };
-    b.innerHTML=filtered.map(({w,defaults})=>'<tr><td><button class="c121-work-link" onclick="openOeuvreDetail(\''+w.id+'\')">'+esc(w.titre)+'</button></td>'+criteria.map(([k])=>'<td>'+stateSelect(w.id,k,w.titre,defaults[k])+'</td>').join('')+'</tr>').join('')||'<tr><td colspan="6">Aucune œuvre pour ces filtres.</td></tr>';
+    b.innerHTML=filtered.map(({w,defaults})=>'<tr><td><input type="checkbox" aria-label="Sélectionner '+esc(w.titre)+'" '+(edlSelected126.has(String(w.id))?'checked ':'')+'onchange="toggleEDL126(\''+w.id+'\',this.checked)"> <button class="c121-work-link" onclick="openOeuvreDetail(\''+w.id+'\')">'+esc(w.titre)+'</button></td>'+criteria.map(([k])=>'<td>'+stateSelect(w.id,k,w.titre,defaults[k])+'</td>').join('')+'</tr>').join('')||'<tr><td colspan="6">Aucune œuvre pour ces filtres.</td></tr>';
+  };
+  window.toggleEDL126=(id,checked)=>{if(checked)edlSelected126.add(String(id));else edlSelected126.delete(String(id));const n=document.getElementById('c126-count');if(n)n.textContent=edlSelected126.size+' sélectionnée(s)'};
+  window.selectVisibleEDL126=checked=>{(window.edlVisible126||[]).forEach(id=>{if(checked)edlSelected126.add(id);else edlSelected126.delete(id)});filterEDLC121()};
+  window.bulkEDL126=async()=>{
+    const ids=[...edlSelected126],col=document.getElementById('c126-bulk-column')?.value||'',state=document.getElementById('c126-bulk-state')?.value||'';
+    if(!ids.length||!state)return alert('Sélectionne au moins une œuvre et un état.');
+    const cols=col?[col]:criteria.map(x=>x[0]);
+    if(!confirm('Appliquer « '+state+' » à '+cols.length+' colonne(s) de '+ids.length+' œuvre(s) ?'))return;
+    const rows=ids.flatMap(id=>cols.map(k=>({oeuvre_id:id,critere:k,etat:state,user_id:currentUser.id,updated_at:new Date().toISOString()})));
+    const result=await db().from('edl_evaluations').upsert(rows,{onConflict:'oeuvre_id,critere'});
+    if(result.error)return alert('Mise à jour impossible : '+result.error.message);
+    rows.forEach(x=>overrides[code(x.oeuvre_id,x.critere)]=state);
+    edlSelected126.clear();filterEDLC121();
   };
   window.saveEDLC121=async(id,k,etat,select)=>{
     select.disabled=true;
