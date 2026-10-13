@@ -34,6 +34,50 @@
   else mountEDLC121();
   const c121NavObserver=new MutationObserver(()=>{if(!document.getElementById('c121-edl-sidebar'))mountEDLC121()});
   c121NavObserver.observe(document.documentElement,{childList:true,subtree:true});
+
+  // C125 : liens natifs pour les rubriques du menu.
+  function menuKey125(el){
+    if(el.id==='c121-edl-sidebar'||el.id==='c121-edl-nav')return 'edl';
+    const handler=el.getAttribute('onclick')||'';
+    const pos=handler.indexOf('navigate(');
+    if(pos<0)return null;
+    const rest=handler.slice(pos+9).trim();
+    const quote=rest[0];
+    if(quote!=="'"&&quote!=='"')return null;
+    const end=rest.indexOf(quote,1);
+    return end>1?rest.slice(1,end):null;
+  }
+  function menuLinks125(){
+    const root=document.querySelector('aside,nav,.sidebar,#sidebar,.side-nav');
+    if(!root)return;
+    root.querySelectorAll('button[onclick],#c121-edl-sidebar').forEach(button=>{
+      if(button.dataset.c125Link||button.closest('a'))return;
+      const key=menuKey125(button);if(!key)return;
+      const a=document.createElement('a');
+      const url=new URL(location.href);url.searchParams.set('passerelle_page',key);
+      a.href=url.toString();a.className='c125-menu-link';
+      a.title='Clic droit ou Ctrl+clic : ouvrir dans un nouvel onglet';
+      button.dataset.c125Link='1';button.parentNode.insertBefore(a,button);a.appendChild(button);
+      a.addEventListener('click',e=>{
+        if(e.button===0&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey){e.preventDefault();button.click()}
+      });
+    });
+  }
+  const menuStyle125=document.createElement('style');
+  menuStyle125.textContent='.c125-menu-link{display:contents;color:inherit;text-decoration:none}';
+  document.head.append(menuStyle125);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',menuLinks125,{once:true});else menuLinks125();
+  const navObserver125=new MutationObserver(menuLinks125);
+  navObserver125.observe(document.documentElement,{subtree:true,childList:true});
+  const initialPage125=new URLSearchParams(location.search).get('passerelle_page');
+  if(initialPage125){
+    let tries=0;const restore125=setInterval(()=>{
+      tries++;
+      if(document.querySelector('#content')&&typeof navigate==='function'){
+        clearInterval(restore125);navigate(initialPage125);
+      }else if(tries>=40)clearInterval(restore125);
+    },250);
+  }
   const nav0=navigate;
   navigate=function(key){if(key==='edl'){resetTheme();setActiveNav(key);renderEDLC121();return;}return nav0(key)};
   let edlRows=[],overrides={},sagaNames={},sousNames={};
