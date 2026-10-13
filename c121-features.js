@@ -864,4 +864,10 @@
   workSelectStyle124.textContent='#character-media-import-zone-v65 .character-media-bulk-v65{flex-wrap:wrap!important}#character-media-import-zone-v65 .character-media-bulk-v65 select{min-width:0;max-width:280px;width:auto;flex:1 1 190px}#character-media-import-zone-v65 .character-media-card-v65 select{max-width:100%;width:100%;min-width:0}';
   document.head.append(workSelectStyle124);
 
+
+  // C129 : charge le module poésie après initialisation des fonctions Passerelle.
+  const poetryScript129=document.createElement('script');
+  poetryScript129.src='c129-poetry.js?v=12901';
+  document.body.appendChild(poetryScript129);
+
 })();
