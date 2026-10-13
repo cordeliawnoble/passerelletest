@@ -70,11 +70,18 @@
   const navObserver125=new MutationObserver(menuLinks125);
   navObserver125.observe(document.documentElement,{subtree:true,childList:true});
   const initialPage125=new URLSearchParams(location.search).get('passerelle_page');
+  let initialNavigationPending125=!!initialPage125;
+  // Le lien direct ne doit restaurer sa rubrique qu'une fois au chargement.
+  // Un clic utilisateur annule la restauration pour ne pas ecraser sa navigation.
+  document.addEventListener('click',e=>{
+    if(e.target.closest('button,a,[role="button"]'))initialNavigationPending125=false;
+  },true);
   if(initialPage125){
     let tries=0;const restore125=setInterval(()=>{
       tries++;
+      if(!initialNavigationPending125){clearInterval(restore125);return}
       if(document.querySelector('#content')&&typeof navigate==='function'){
-        clearInterval(restore125);navigate(initialPage125);
+        clearInterval(restore125);initialNavigationPending125=false;navigate(initialPage125);
       }else if(tries>=40)clearInterval(restore125);
     },250);
   }
