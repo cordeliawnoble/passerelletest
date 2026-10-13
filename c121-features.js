@@ -874,7 +874,7 @@
 
   // C129 : charge le module poésie après initialisation des fonctions Passerelle.
   const poetryScript129=document.createElement('script');
-  poetryScript129.src='c129-poetry.js?v=12901';
+  poetryScript129.src='c129-poetry.js?v=12902';
   document.body.appendChild(poetryScript129);
 
 })();
