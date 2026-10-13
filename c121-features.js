@@ -137,6 +137,43 @@
     rows.forEach(x=>overrides[code(x.oeuvre_id,x.critere)]=state);
     edlSelected126.clear();filterEDLC121();
   };
+
+  // C127 : presentation compacte de l'Etat des lieux, sans modifier les donnees.
+  const edlStyle127=document.createElement('style');
+  edlStyle127.textContent=`
+    .c121-edl .c121-edl-head{display:block!important}
+    .c121-edl .c121-edl-head>div:first-child{margin-bottom:16px}
+    .c121-edl .c121-edl-filters{display:grid!important;grid-template-columns:minmax(180px,1.6fr) repeat(4,minmax(125px,1fr));gap:9px!important;align-items:center;width:100%}
+    .c121-edl .c121-edl-filters input,.c121-edl .c121-edl-filters select{width:100%!important;max-width:none!important;min-width:0;box-sizing:border-box}
+    .c121-edl .c126-bulk-toolbar{display:flex!important;flex-wrap:wrap!important;gap:10px!important;align-items:center!important;padding:12px 14px!important}
+    .c121-edl .c126-bulk-toolbar select{flex:0 1 190px!important;width:auto!important;min-width:145px!important;max-width:220px!important;padding:9px!important}
+    .c121-edl .c126-bulk-toolbar button{flex:0 0 auto!important;white-space:nowrap}
+    .c121-edl .c126-bulk-toolbar #c126-count{margin-left:auto;white-space:nowrap}
+    .c121-edl .c121-table th:first-child{width:25%!important;text-align:left!important}
+    .c121-edl .c121-table th:first-child input{display:inline-block!important;vertical-align:middle!important;margin:0 9px 0 0!important;position:static!important}
+    .c121-edl .c121-table td:first-child input{display:inline-block!important;vertical-align:middle!important;margin:0 9px 0 0!important;position:static!important}
+    .c121-edl .c121-table td:first-child .c121-work-link{display:inline!important;vertical-align:middle!important}
+    @media(max-width:960px){
+      .c121-edl .c121-edl-filters{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto;padding-bottom:6px}
+      .c121-edl .c121-edl-filters>*{flex:0 0 155px!important}
+      .c121-edl .c121-edl-filters input{flex-basis:220px!important}
+      .c121-edl .c126-bulk-toolbar select{flex:1 1 155px!important}
+    }
+  `;
+  document.head.append(edlStyle127);
+  const renderEDL127=window.renderEDLC121;
+  window.renderEDLC121=async function(){
+    await renderEDL127();
+    const body=document.getElementById('c121-edl-body');
+    if(!body)return;
+    const toolbar=body.closest('.c121-edl')?.querySelector('#c126-bulk-column')?.parentElement;
+    if(toolbar)toolbar.classList.add('c126-bulk-toolbar');
+    const head=body.closest('table')?.querySelector('thead th:first-child');
+    if(head){
+      const box=head.querySelector('input[type="checkbox"]');
+      if(box){head.textContent='';head.append(box,document.createTextNode(' Œuvre'))}
+    }
+  };
   window.saveEDLC121=async(id,k,etat,select)=>{
     select.disabled=true;
     const r=etat?await db().from('edl_evaluations').upsert({oeuvre_id:id,critere:k,etat,user_id:currentUser.id,updated_at:new Date().toISOString()},{onConflict:'oeuvre_id,critere'}):await db().from('edl_evaluations').delete().eq('oeuvre_id',id).eq('critere',k);
