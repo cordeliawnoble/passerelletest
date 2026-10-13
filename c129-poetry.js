@@ -70,6 +70,24 @@ window.renderPoetry129=async()=>{
  poetryRefresh129();
 };
 function mount(){if(document.getElementById('p129-nav'))return;const a=document.getElementById('c121-edl-sidebar');if(!a)return;const b=document.createElement('button');b.id='p129-nav';b.className=a.className;b.textContent='📜 Bibliothèque poétique';b.onclick=()=>navigate('poetry129');a.after(b)}
-const previous=navigate;navigate=function(key){if(key==='poetry129'){renderPoetry129();return}return previous(key)};
+const previous=navigate;
+let poetryToken129=0;
+navigate=function(key){
+  if(key==='poetry129'){
+    const token=++poetryToken129;
+    // Certains chargements de l'application restaurent la page précédente après le clic.
+    // Réafficher la bibliothèque après la fin de cette restauration initiale.
+    history.replaceState(history.state,'',(()=>{const u=new URL(location.href);u.searchParams.set('passerelle_page','poetry129');return u.toString()})());
+    renderPoetry129();
+    [350,900,1800].forEach(delay=>setTimeout(()=>{
+      if(token!==poetryToken129)return;
+      const root=document.getElementById('content');
+      if(root&&!root.querySelector('.p129'))renderPoetry129();
+    },delay));
+    return;
+  }
+  ++poetryToken129;
+  return previous(key);
+};
 mount();new MutationObserver(mount).observe(document.documentElement,{subtree:true,childList:true});
 })();
