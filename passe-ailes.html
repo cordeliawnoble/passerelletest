@@ -508,6 +508,34 @@ function editBlurbInlineV13(){const d=dossierState(currentDossier),box=document.
 function saveBlurbInlineV13(){const d=dossierState(currentDossier);d.blurb=v('blurb-edit-v13');persist();renderDossierTab('overview')}
 editBlurbV11=editBlurbInlineV13;
 function renderBackofficeV13(){const b=document.getElementById('backoffice');if(!b)return;b.innerHTML=`<div class="head"><div><h1>Back-office</h1><p>Administration technique de Passe-Ailes.</p></div></div><div class="bo-shell-v13r"><aside class="bo-nav-v13r"><div class="bo-brand-v13r">⚙ Back-office</div><button class="${paBoTabV13==='appearance'?'active':''}" onclick="boTabV13('appearance')">🎨 Apparence</button><button class="${paBoTabV13==='navigation'?'active':''}" onclick="boTabV13('navigation')">▦ Navigation & heroes</button><button class="${paBoTabV13==='sync'?'active':''}" onclick="boTabV13('sync')">↻ Synchronisations</button><button class="${paBoTabV13==='backup'?'active':''}" onclick="boTabV13('backup')">⇩ Sauvegarde & exports</button><button class="${paBoTabV13==='identity'?'active':''}" onclick="boTabV13('identity')">♙ Identification</button></aside><div class="bo-main-v13r"><section class="bo-panel-v13r ${paBoTabV13==='appearance'?'active':''}" data-bo="appearance"><h2>Apparence</h2><div class="bo-settings-v13r"><div class="bo-setting-v13r"><b>Thème</b><p><button class="btn sm" onclick="setThemeV11('light')">☀ Clair</button> <button class="btn sm" onclick="setThemeV11('dark')">☾ Sombre</button></p></div><div class="bo-setting-v13r"><b>Couleur principale</b><p><input type="color" value="${localStorage.getItem('passeailes-accent')||'#76558e'}" onchange="setAccentV11(this.value)"></p></div></div></section><section class="bo-panel-v13r ${paBoTabV13==='navigation'?'active':''}" data-bo="navigation"><h2>Navigation & heroes</h2><div class="card"><p>Les heroes et bannières seront téléversables ici, sans URL manuelle.</p><button class="btn sm" disabled>Téléverser un hero</button></div></section><section class="bo-panel-v13r ${paBoTabV13==='sync'?'active':''}" data-bo="sync"><h2>Synchronisations</h2><div class="bo-setting-v13r"><b>Passerelle</b><p class="note">Œuvres et identifiants canoniques.</p><span class="pill">Connecté</span></div></section><section class="bo-panel-v13r ${paBoTabV13==='backup'?'active':''}" data-bo="backup"><h2>Sauvegarde & exports</h2><button class="btn" onclick="exportData()">Exporter les données</button></section><section class="bo-panel-v13r ${paBoTabV13==='identity'?'active':''}" data-bo="identity"><h2>Identification</h2><p class="note">Réglages techniques du compte et de l’application.</p></section></div></div>`}
+function exportData(){
+  try {
+    const localEntries={};
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key && key.startsWith('passe-ailes:')) localEntries[key]=localStorage.getItem(key);
+    }
+    const backup={
+      format:'passe-ailes-backup',
+      version:1,
+      exportedAt:new Date().toISOString(),
+      origin:location.origin+location.pathname,
+      data:{state:JSON.parse(JSON.stringify(state)),professionalWorks:JSON.parse(JSON.stringify(proWorks)),localStorage:localEntries}
+    };
+    const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='passe-ailes-sauvegarde-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(error){
+    console.error('Échec export Passe-Ailes',error);
+    alert('La sauvegarde n’a pas pu être créée. Aucune donnée n’a été modifiée.');
+  }
+}
 function boTabV13(x){paBoTabV13=x;renderBackofficeV13()}
 // Replace prompt-based actions specifically covered by this pass.
 addObligation=editObligationDrawerV13;addRuleV11=editRuleDrawerV13;addDocument=editDocumentDrawerV13;
