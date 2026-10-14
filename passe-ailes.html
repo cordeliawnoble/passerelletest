@@ -767,4 +767,58 @@ document.getElementById('planning')?.querySelector('.head h1')?.replaceChildren(
 })();
 </script>
 
+
+<style id="pa-routing-v16-style">
+.nav button[data-page="marketing"]{display:none!important}
+#communication .pa-v16-intro{margin:0 0 16px;color:var(--muted,#756d7c)}
+#communication .pa-v16-actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+#communication .pa-v16-actions button{padding:10px 14px}
+</style>
+<script id="pa-routing-v16">
+(function(){
+ const originalRebuild=typeof rebuildSidebarV13==='function'?rebuildSidebarV13:null;
+ function cleanNav(){document.querySelectorAll('.nav button[data-page="marketing"]').forEach(b=>b.remove());document.querySelectorAll('.nav button[data-page="communication"]').forEach(b=>{const label=b.querySelector('.pa-nav-label');if(label)label.textContent='Communication';else b.textContent='📣 Communication';b.onclick=()=>go('communication')});document.querySelectorAll('.nav button[data-page="planning"]').forEach(b=>b.onclick=()=>go('planning'))}
+ if(originalRebuild){rebuildSidebarV13=function(){originalRebuild();cleanNav()}}
+ cleanNav();
+ const comm=document.getElementById('communication');
+ if(comm){
+  const head=comm.querySelector('.head h1');if(head)head.textContent='Communication';
+  const sub=comm.querySelector('.head p');if(sub)sub.textContent='L’atelier de préparation de ta communication d’autrice, hors campagnes propres aux œuvres.';
+  const tabs=comm.querySelector('#comm-tabs');if(tabs)tabs.innerHTML='<button class="active" data-ctab="overview">À préparer</button><button data-ctab="routines">Rendez-vous récurrents</button><button data-ctab="resources">Bibliothèque</button>';
+ }
+ const previousRender=renderCommunication;
+ renderCommunication=function(tab='overview'){
+  if(tab==='routines'||tab==='resources')return previousRender(tab);
+  const z=document.getElementById('communication-zone');if(!z)return;
+  document.querySelectorAll('#comm-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.ctab==='overview'));
+  const today=new Date().toISOString().slice(0,10);
+  const entries=(state.events||[]).filter(x=>x.source==='communication'&&!x.workId&&!x.campaignId&&x.status!=='Publié').sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const future=entries.filter(x=>x.date>=today);
+  const groups=Array.isArray(state.groupPromotions)?state.groupPromotions:[];
+  z.innerHTML='<p class="pa-v16-intro">Préparer les publications transversales, tes rendez-vous d’autrice et les opérations associant plusieurs œuvres. Les campagnes d’une œuvre restent dans son dossier.</p>'+
+   '<div class="pa-v16-actions"><button class="btn primary" id="pa-v16-new-comm">+ Publication d’autrice</button><button class="btn" id="pa-v16-routines">Rendez-vous récurrents</button><button class="btn" id="pa-v16-library">Bibliothèque</button><button class="btn" id="pa-v16-planning">Voir le planning</button></div>'+
+   '<div class="kpis"><div class="card"><b>'+future.length+'</b><span>publications à venir</span></div><div class="card"><b>'+commRoutines().length+'</b><span>rendez-vous récurrents</span></div><div class="card"><b>'+groups.length+'</b><span>promotions groupées</span></div></div>'+
+   '<div class="grid2"><div class="card"><h3>Publications à préparer</h3>'+(entries.length?entries.slice(0,15).map(x=>'<div class="item"><b>'+esc(x.title)+'</b><small>'+esc(x.date)+' · '+esc(x.channel||'')+' · '+esc(x.status||'À venir')+'</small></div>').join(''):'<div class="empty">Aucune publication transversale en attente.</div>')+'</div>'+
+   '<div class="card"><h3>Promotions multi-œuvres</h3>'+(groups.length?groups.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(x=>'<div class="item"><b>✨ '+esc(x.title)+'</b><small>'+esc(x.date)+' · '+(x.workIds||[]).length+' œuvres · '+esc(x.channel||'')+'</small></div>').join(''):'<div class="empty">Aucune promotion groupée. Tu peux en créer une depuis le Planning mensuel.</div>')+'</div></div>';
+  z.querySelector('#pa-v16-new-comm').onclick=()=>openCommEvent();
+  z.querySelector('#pa-v16-routines').onclick=()=>renderCommunication('routines');
+  z.querySelector('#pa-v16-library').onclick=()=>renderCommunication('resources');
+  z.querySelector('#pa-v16-planning').onclick=()=>go('planning');
+ };
+ document.querySelectorAll('#comm-tabs button').forEach(b=>b.onclick=()=>renderCommunication(b.dataset.ctab));
+ const priorGo=go;
+ go=function(id){
+  if(id==='marketing')return priorGo('communication');
+  if(id==='communication'){
+   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+   document.getElementById('communication').classList.add('active');
+   document.querySelectorAll('.nav button[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='communication'));
+   renderCommunication('overview');return;
+  }
+  return priorGo(id);
+ };
+ cleanNav();
+})();
+</script>
+
 </body></html>
