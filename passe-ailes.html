@@ -661,4 +661,110 @@ rebuildSidebarV13();ensureDrawerV13();renderHome();
 })();
 </script>
 <!-- pages-redeploy: cockpit-v14 retry after Pages timeout -->
+
+<style id="pa-planning-v15-style">
+#planning .pv15-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+#planning .pv15-tabs button{border:1px solid #d9cce4;border-radius:11px;padding:11px 18px;background:transparent;color:inherit;cursor:pointer}
+#planning .pv15-tabs button.active{background:#78569b;color:white;border-color:#78569b}
+#planning .pv15-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 20px}
+#planning .pv15-controls select{padding:9px;border:1px solid #d9cce4;border-radius:9px;background:var(--card,#fff);color:inherit}
+#planning .pv15-table{overflow:auto;border:1px solid #dfd3e8;border-radius:13px}
+#planning .pv15-table table{border-collapse:collapse;width:100%;min-width:850px}
+#planning .pv15-table th,#planning .pv15-table td{border-bottom:1px solid #e6ddea;padding:10px;text-align:center}
+#planning .pv15-table th:first-child,#planning .pv15-table td:first-child{text-align:left;min-width:180px}
+#planning .pv15-count{background:#eee3f4;color:#60417c;border-radius:7px;padding:5px 8px;display:inline-block;font-weight:600}
+#planning .pv15-group{border-left:5px solid #bd8b58!important;background:#f5e9d9!important;color:#61482f!important}
+#planning .pv15-note{font-size:12px;opacity:.7;margin:12px 0}
+#pv15-group-modal{position:fixed;inset:0;background:#18111d99;z-index:9999;display:none;align-items:center;justify-content:center;padding:18px}
+#pv15-group-modal.open{display:flex}
+#pv15-group-modal .pv15-dialog{background:var(--card,#fff);color:inherit;border-radius:16px;padding:24px;width:min(520px,100%);max-height:90vh;overflow:auto;box-shadow:0 12px 55px #0003}
+#pv15-group-modal label{display:block;margin:12px 0;font-weight:600}
+#pv15-group-modal input,#pv15-group-modal select,#pv15-group-modal textarea{display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #d7c9e1;border-radius:8px;background:transparent;color:inherit}
+#pv15-group-modal .pv15-work{display:flex;align-items:center;gap:8px;font-weight:400;margin:7px 0}
+#pv15-group-modal .pv15-work input{width:auto;margin:0}
+#pv15-group-modal .pv15-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
+</style>
+<script id="pa-planning-v15-script">
+(function(){
+let mode='month',year=planMonth.getFullYear(),quarter=Math.floor(planMonth.getMonth()/3),selectedWork='',editing=null;
+const months=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const e=x=>esc(String(x??''));
+const groups=()=>Array.isArray(state.groupPromotions)?state.groupPromotions:[];
+const workTitle=id=>proWorks.find(w=>String(w.oeuvre_id)===String(id))?.titre||'Œuvre non identifiée';
+const routinesFor=(y,m)=>routineEventsForMonth(new Date(y,m,1));
+const allForYear=y=>[...state.events,...Array.from({length:12},(_,m)=>routinesFor(y,m)).flat(),...groups().map(g=>({...g,source:'group-promotion',workId:'',groupWorkIds:g.workIds||[]}))].filter(x=>String(x.date||'').startsWith(String(y)+'-'));
+const filtered=items=>selectedWork?items.filter(x=>String(x.workId||'')===selectedWork||(x.groupWorkIds||[]).includes(selectedWork)):items;
+const byMonth=(items,m)=>items.filter(x=>Number(String(x.date).slice(5,7))===m+1);
+const worksFor=items=>{const ids=[...new Set(items.flatMap(x=>x.groupWorkIds?.length?x.groupWorkIds:[x.workId||'']))];return selectedWork?[selectedWork]:ids};
+const viewButton=(key,title)=>'<button type="button" data-pv15-view="'+key+'" class="'+(mode===key?'active':'')+'">'+title+'</button>';
+function render(){
+ const z=document.getElementById('planning-zone');if(!z)return;
+ const tabs='<div class="pv15-tabs">'+viewButton('annual','Annuelle')+viewButton('quarter','Trimestrielle')+viewButton('month','Mensuelle')+'</div>';
+ const y='<label>Année <select id="pv15-year">'+[...new Set([year,new Date().getFullYear(),...state.events.map(x=>Number(String(x.date).slice(0,4))).filter(Number.isFinite)])].sort((a,b)=>a-b).map(v=>'<option value="'+v+'" '+(v===year?'selected':'')+'>'+v+'</option>').join('')+'</select></label>';
+ const works='<label>Œuvre <select id="pv15-work"><option value="">Toutes les œuvres</option>'+proWorks.map(w=>'<option value="'+e(w.oeuvre_id)+'" '+(selectedWork===String(w.oeuvre_id)?'selected':'')+'>'+e(w.titre)+'</option>').join('')+'</select></label>';
+ const period=mode==='quarter'?'<label>Trimestre <select id="pv15-quarter">'+[0,1,2,3].map(q=>'<option value="'+q+'" '+(quarter===q?'selected':'')+'>T'+(q+1)+'</option>').join('')+'</select></label>':'';
+ const controls=mode==='month'?'':'<div class="pv15-controls">'+y+period+works+'</div>';
+ z.innerHTML=tabs+controls+'<div id="pv15-body"></div>';
+ z.querySelectorAll('[data-pv15-view]').forEach(b=>b.onclick=()=>{mode=b.dataset.pv15View;render()});
+ const ys=z.querySelector('#pv15-year');if(ys)ys.onchange=x=>{year=+x.target.value;render()};
+ const qs=z.querySelector('#pv15-quarter');if(qs)qs.onchange=x=>{quarter=+x.target.value;render()};
+ const ws=z.querySelector('#pv15-work');if(ws)ws.onchange=x=>{selectedWork=x.target.value;render()};
+ if(mode==='month'){
+  const body=z.querySelector('#pv15-body');renderPlanningZone(body);
+  const bar=document.createElement('div');bar.className='toolbar';bar.innerHTML='<button class="btn sm" type="button" id="pv15-group-new">+ Promotion groupée</button>';
+  body.insertBefore(bar,body.firstChild);
+  bar.querySelector('button').onclick=()=>openGroup();
+  drawGroupCards();
+ }else if(mode==='annual')drawAnnual();else drawQuarter();
+}
+function drawAnnual(){
+ const items=filtered(allForYear(year)),ids=worksFor(items);
+ const table='<div class="pv15-table"><table><thead><tr><th>Œuvre / communication</th>'+months.map(m=>'<th>'+m.slice(0,3)+'</th>').join('')+'<th>Total</th></tr></thead><tbody>'+ids.map(id=>{const relevant=items.filter(x=>x.workId===id||(x.groupWorkIds||[]).includes(id));return '<tr><td>'+e(id?workTitle(id):'Communication générale')+'</td>'+months.map((m,i)=>{const n=byMonth(relevant,i).length;return '<td>'+(n?'<span class="pv15-count">'+n+'</span>':'·')+'</td>'}).join('')+'<td><strong>'+relevant.length+'</strong></td></tr>'}).join('')+'</tbody></table></div>';
+ document.getElementById('pv15-body').innerHTML='<h2>Vision annuelle · '+year+'</h2><p class="pv15-note">Synthèse par œuvre et par mois. Les opérations groupées sont comptées une fois dans le total des actions, mais visibles pour chacune des œuvres concernées.</p>'+table+'<p class="pv15-note">'+items.length+' actions de communication au total, promotions groupées comptées une seule fois.</p>';
+}
+function drawQuarter(){
+ const start=new Date(year,quarter*3,1),end=new Date(year,quarter*3+3,1),weeks=[];
+ let cur=new Date(start);cur.setDate(cur.getDate()-((cur.getDay()+6)%7));while(cur<end){weeks.push(new Date(cur));cur.setDate(cur.getDate()+7)}
+ const items=filtered(allForYear(year)),ids=worksFor(items);
+ const table='<div class="pv15-table"><table><thead><tr><th>Œuvre / communication</th>'+weeks.map(d=>'<th>'+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+'</th>').join('')+'</tr></thead><tbody>'+ids.map(id=>'<tr><td>'+e(id?workTitle(id):'Communication générale')+'</td>'+weeks.map(d=>{const stop=new Date(d);stop.setDate(stop.getDate()+7);const a=items.filter(x=>x.workId===id||(x.groupWorkIds||[]).includes(id)).filter(x=>{const day=new Date(x.date+'T12:00:00');return day>=d&&day<stop&&day>=start&&day<end});return '<td>'+(a.length?'<span class="pv15-count">'+a.length+'</span><div class="pv15-note">'+e([...new Set(a.map(x=>x.channel).filter(Boolean))].join(', '))+'</div>':'·')+'</td>'}).join('')+'</tr>').join('')+'</tbody></table></div>';
+ document.getElementById('pv15-body').innerHTML='<h2>Vision trimestrielle · T'+(quarter+1)+' '+year+'</h2><p class="pv15-note">Volumes hebdomadaires par projet, avec les canaux utilisés. Les routines et promotions groupées sont incluses.</p>'+table;
+}
+function drawGroupCards(){
+ const cal=document.getElementById('plan-cal');if(!cal)return;
+ const base=new Date(planMonth.getFullYear(),planMonth.getMonth(),1),offset=(base.getDay()+6)%7;
+ groups().filter(g=>String(g.date||'').slice(0,7)===base.getFullYear()+'-'+String(base.getMonth()+1).padStart(2,'0')).forEach(g=>{
+  const day=Number(g.date.slice(8,10)),idx=offset+day-1,cell=cal.children[idx];if(!cell)return;
+  const card=document.createElement('div');card.className='event pv15-group';card.style.cursor='pointer';card.innerHTML='<b>✨ '+e(g.title)+'</b><br>'+e(g.channel||'Communication')+' · '+(g.workIds||[]).length+' œuvre(s)';
+  card.onclick=()=>openGroup(g.id);cell.appendChild(card);
+ });
+}
+const originalDrawPlan=drawPlan;
+drawPlan=function(){originalDrawPlan();if(mode==='month')drawGroupCards()};
+const modal=document.createElement('div');modal.id='pv15-group-modal';modal.innerHTML='<div class="pv15-dialog"><h2>Promotion groupée</h2><p class="pv15-note">Une opération, plusieurs œuvres. Aucun événement existant ne sera modifié.</p><label>Titre<input id="pv15-title" maxlength="180"></label><label>Date<input id="pv15-date" type="date"></label><label>Canal<select id="pv15-channel"><option>Instagram</option><option>Site</option><option>Newsletter</option><option>Podcast</option><option>Autre</option></select></label><div><strong>Œuvres associées</strong><div id="pv15-worklist"></div></div><label>Notes<textarea id="pv15-notes" rows="3"></textarea></label><div class="pv15-actions"><button class="btn sm danger" id="pv15-delete" type="button">Supprimer</button><button class="btn sm" id="pv15-cancel" type="button">Annuler</button><button class="btn primary" id="pv15-save" type="button">Enregistrer</button></div></div>';document.body.appendChild(modal);
+function closeGroup(){modal.classList.remove('open')}
+function openGroup(id){editing=id||null;const g=groups().find(x=>x.id===id)||{title:'',date:new Date().toISOString().slice(0,10),channel:'Instagram',workIds:[],notes:''};
+ modal.querySelector('#pv15-title').value=g.title;modal.querySelector('#pv15-date').value=g.date;modal.querySelector('#pv15-channel').value=g.channel||'Instagram';modal.querySelector('#pv15-notes').value=g.notes||'';
+ modal.querySelector('#pv15-worklist').innerHTML=proWorks.map(w=>'<label class="pv15-work"><input type="checkbox" value="'+e(w.oeuvre_id)+'" '+((g.workIds||[]).includes(String(w.oeuvre_id))?'checked':'')+'>'+e(w.titre)+'</label>').join('');
+ modal.querySelector('#pv15-delete').style.display=editing?'':'none';modal.classList.add('open');
+}
+modal.querySelector('#pv15-cancel').onclick=closeGroup;
+modal.onclick=x=>{if(x.target===modal)closeGroup()};
+modal.querySelector('#pv15-save').onclick=()=>{
+ const title=modal.querySelector('#pv15-title').value.trim(),date=modal.querySelector('#pv15-date').value,channel=modal.querySelector('#pv15-channel').value,notes=modal.querySelector('#pv15-notes').value;
+ const workIds=[...modal.querySelectorAll('#pv15-worklist input:checked')].map(x=>x.value);
+ if(!title||!date||workIds.length<2){alert('Renseigne un titre, une date et au moins deux œuvres.');return}
+ const item={id:editing||'GROUP-'+Date.now(),title,date,channel,notes,workIds,source:'group-promotion'};
+ state.groupPromotions=groups().filter(x=>x.id!==item.id).concat(item);persist();closeGroup();render();
+};
+modal.querySelector('#pv15-delete').onclick=()=>{if(!editing||!confirm('Supprimer cette promotion groupée ?'))return;state.groupPromotions=groups().filter(x=>x.id!==editing);persist();closeGroup();render()};
+renderStandalonePlanning=function(){render()};
+const prevGo=go;
+go=function(id){if(id==='pa-cockpit-v14'||id==='communication'){const page=document.getElementById('pa-cockpit-v14');if(page)page.classList.remove('active');return prevGo('communication')}if(id==='planning'){const page=document.getElementById('pa-cockpit-v14');if(page)page.classList.remove('active');document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById('planning').classList.add('active');document.querySelectorAll('.nav button[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='planning'));render();return}return prevGo(id)};
+document.querySelectorAll('.nav button[data-page="communication"]').forEach(b=>{b.textContent='📣 Communication';b.onclick=()=>go('communication')});
+document.querySelectorAll('.nav button[data-page="marketing"]').forEach(b=>b.style.display='none');
+document.querySelectorAll('.nav button[data-page="planning"]').forEach(b=>b.onclick=()=>go('planning'));
+document.getElementById('planning')?.querySelector('.head h1')?.replaceChildren(document.createTextNode('Planning'));
+})();
+</script>
+
 </body></html>
