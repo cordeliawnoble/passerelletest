@@ -872,6 +872,11 @@
   document.head.append(workSelectStyle124);
 
 
+  // C130 : correctif Nouvelle session et prolongation des séries.
+  const planningScript130=document.createElement('script');
+  planningScript130.src='c130-planning.js?v=13002';
+  document.body.appendChild(planningScript130);
+
   // C129 : charge le module poésie après initialisation des fonctions Passerelle.
   const poetryScript129=document.createElement('script');
   poetryScript129.src='c129-poetry.js?v=12902';
