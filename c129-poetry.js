@@ -68,8 +68,22 @@ window.renderPoetry129=async()=>{
  poems=p.data||[];links=l.data||[];works=w.data||[];
  root.innerHTML='<section class="p129"><h1>📜 Bibliothèque poétique</h1><p>Un poème, plusieurs recueils possibles.</p><div class="tools"><button class="btn-primary" onclick="poetryOpen129(\'\')">+ Nouveau poème</button><button class="btn-secondary" onclick="poetryTemplate129()">Modèle CSV</button><label class="btn-secondary">Importer CSV <input type="file" accept=".csv" style="display:none" onchange="poetryImport129(this.files[0]);this.value=\'\'"></label><select onchange="poetryFilter129(this.value)"><option value="">Tous les recueils</option>'+works.map(w=>'<option value="'+E(w.id)+'" '+(active===w.id?'selected':'')+'>'+E(w.titre)+'</option>').join('')+'</select><input id="p129-search" placeholder="Rechercher…" oninput="poetryRefresh129()"><span id="p129-count"></span></div><div class="panel" style="overflow:auto"><table><thead><tr><th>✓</th><th>Poème</th><th>Recueil d’origine</th><th>Présent dans</th></tr></thead><tbody id="p129-rows"></tbody></table></div></section>';
  poetryRefresh129();
+ poetryTabs131('bibliotheque');
 };
-function mount(){if(document.getElementById('p129-nav'))return;const a=document.getElementById('c121-edl-sidebar');if(!a)return;const b=document.createElement('button');b.id='p129-nav';b.className=a.className;b.textContent='📜 Bibliothèque poétique';b.onclick=e=>{e.preventDefault();e.stopPropagation();navigate('poetry129')};const wrapper=a.closest('a.c125-menu-link');(wrapper||a).after(b)}
+function mount(){
+ // C131 : la bibliothèque appartient à Poésie, et non au menu principal.
+ document.getElementById('p129-nav')?.remove();
+}
+function poetryTabs131(which){
+ const root=document.getElementById('content');if(!root)return;
+ root.querySelector('#p131-tabs')?.remove();
+ const bar=document.createElement('div');bar.id='p131-tabs';bar.className='c121-tabs';bar.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 18px';
+ const a=document.createElement('button'),b=document.createElement('button');
+ a.textContent='🪶 Recueils';b.textContent='📜 Bibliothèque des poèmes';
+ a.className=which==='recueils'?'active':'';b.className=which==='bibliotheque'?'active':'';
+ a.onclick=()=>navigate('poesie');b.onclick=()=>navigate('poetry129');
+ bar.append(a,b);root.prepend(bar);
+}
 const previous=navigate;
 let poetryToken129=0;
 navigate=function(key){
@@ -87,6 +101,12 @@ navigate=function(key){
     return;
   }
   ++poetryToken129;
+  if(key==='poesie'){
+    const result=previous(key);
+    // La page Recueils charge ses cartes de façon asynchrone.
+    poetryTabs131('recueils');
+    return result;
+  }
   return previous(key);
 };
 mount();new MutationObserver(mount).observe(document.documentElement,{subtree:true,childList:true});
