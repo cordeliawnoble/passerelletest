@@ -584,4 +584,80 @@ function boTabV13(x){paBoTabV13=x;renderBackofficeV13()}
 // Replace prompt-based actions specifically covered by this pass.
 addObligation=editObligationDrawerV13;addRuleV11=editRuleDrawerV13;addDocument=editDocumentDrawerV13;
 rebuildSidebarV13();ensureDrawerV13();renderHome();
-</script></body></html>
+</script>
+<style id="pa-cockpit-v14-style">
+#pa-cockpit-v14{--pc-purple:#75548e}
+#pa-cockpit-v14 .pc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+#pa-cockpit-v14 .pc-head h1{margin:0 0 6px}
+#pa-cockpit-v14 .pc-controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:12px 0 18px}
+#pa-cockpit-v14 .pc-controls select,#pa-cockpit-v14 .pc-controls input{padding:9px 12px;border:1px solid var(--border,#d9d2e1);border-radius:9px;background:var(--card,#fff);color:inherit;max-width:240px}
+#pa-cockpit-v14 .pc-views{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+#pa-cockpit-v14 .pc-views button{border:1px solid #c9bdd6;border-radius:10px;padding:10px 15px;background:transparent;color:inherit;cursor:pointer}
+#pa-cockpit-v14 .pc-views button.active{background:#75548e;color:white;border-color:#75548e}
+#pa-cockpit-v14 .pc-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin:16px 0}
+#pa-cockpit-v14 .pc-stat{border:1px solid #c9bdd666;border-radius:12px;padding:14px;background:var(--card,#fff)}
+#pa-cockpit-v14 .pc-stat strong{display:block;font-size:23px}
+#pa-cockpit-v14 .pc-stat span{font-size:12px;opacity:.72}
+#pa-cockpit-v14 .pc-table-wrap{overflow-x:auto;border:1px solid #c9bdd666;border-radius:12px}
+#pa-cockpit-v14 table{width:100%;border-collapse:collapse;min-width:770px;font-size:13px}
+#pa-cockpit-v14 th,#pa-cockpit-v14 td{padding:10px 8px;text-align:center;border-bottom:1px solid #c9bdd644;border-right:1px solid #c9bdd633}
+#pa-cockpit-v14 th:first-child,#pa-cockpit-v14 td:first-child{text-align:left;min-width:175px;position:sticky;left:0;background:var(--card,#fff);z-index:1}
+#pa-cockpit-v14 th{font-size:12px;opacity:.82}
+#pa-cockpit-v14 .pc-cell{display:inline-block;min-width:25px;padding:5px 7px;border-radius:7px;background:#eee4f4;color:#503768;font-weight:600}
+#pa-cockpit-v14 .pc-empty{opacity:.35}
+#pa-cockpit-v14 .pc-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+#pa-cockpit-v14 .pc-day{border:1px solid #c9bdd666;border-radius:8px;min-height:100px;padding:7px;min-width:0}
+#pa-cockpit-v14 .pc-day.other{opacity:.35}
+#pa-cockpit-v14 .pc-day strong{font-size:12px}
+#pa-cockpit-v14 .pc-event{display:block;background:#eee4f4;color:#503768;padding:5px;border-radius:6px;font-size:11px;margin-top:5px;overflow-wrap:anywhere}
+#pa-cockpit-v14 .pc-event small{display:block;opacity:.7}
+#pa-cockpit-v14 .pc-note{opacity:.7;font-size:12px;margin-top:13px}
+#pa-cockpit-v14 .pc-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+@media(max-width:650px){#pa-cockpit-v14 .pc-day{min-height:75px;padding:4px}#pa-cockpit-v14 .pc-event{font-size:9px;padding:3px}#pa-cockpit-v14 .pc-calendar{gap:2px}}
+</style>
+<script id="pa-cockpit-v14-script">
+(function(){
+ const labels=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+ const now=new Date();
+ let year=now.getFullYear(),month=now.getMonth(),quarter=Math.floor(now.getMonth()/3),view='annual',work='all';
+ const escapeHtml=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+ const dateOf=x=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(x||''));return m?new Date(+m[1],+m[2]-1,+m[3]):null};
+ const events=()=>Array.isArray(state.events)?state.events:[];
+ const campaigns=()=>Array.isArray(state.campaigns)?state.campaigns:[];
+ const works=()=>Array.isArray(proWorks)?proWorks:[];
+ const workName=id=>works().find(w=>String(w.oeuvre_id)===String(id))?.titre|| (id?'Œuvre non identifiée':'Communication générale');
+ const matches=e=>work==='all'||String(e.workId||'')===work;
+ const inMonth=(e,y,m)=>{const d=dateOf(e.date);return d&&d.getFullYear()===y&&d.getMonth()===m};
+ const visible=()=>events().filter(matches);
+ const count=(y,m,id)=>visible().filter(e=>(id===undefined||String(e.workId||'')===String(id))&&inMonth(e,y,m)).length;
+ const eventIds=()=>[...new Set(events().map(e=>String(e.workId||'')))];
+ const relevantIds=()=>work==='all'?eventIds():[work];
+ const yearOptions=()=>{const set=new Set([year,now.getFullYear()]);events().forEach(e=>{const d=dateOf(e.date);if(d)set.add(d.getFullYear())});campaigns().forEach(c=>{for(const k of ['startDate','endDate','start','end']){const d=dateOf(c[k]);if(d)set.add(d.getFullYear())}});return [...set].sort((a,b)=>a-b)};
+ const label=(id)=>workName(id);
+ const nav=()=>'<div class="pc-views">'+[['annual','Annuelle'],['quarter','Trimestrielle'],['month','Mensuelle']].map(([id,t])=>'<button type="button" data-pc-view="'+id+'" class="'+(view===id?'active':'')+'">'+t+'</button>').join('')+'</div>';
+ const controls=()=>'<div class="pc-controls"><label>Période <select id="pc-year">'+yearOptions().map(y=>'<option value="'+y+'" '+(y===year?'selected':'')+'>'+y+'</option>').join('')+'</select></label><button class="btn sm" id="pc-prev">←</button><button class="btn sm" id="pc-next">→</button>'+(view==='quarter'?'<label>Trimestre <select id="pc-quarter">'+[0,1,2,3].map(q=>'<option value="'+q+'" '+(q===quarter?'selected':'')+'>T'+(q+1)+'</option>').join('')+'</select></label>':'')+(view==='month'?'<label>Mois <select id="pc-month">'+labels.map((m,i)=>'<option value="'+i+'" '+(i===month?'selected':'')+'>'+m+'</option>').join('')+'</select></label>':'')+'<label>Œuvre <select id="pc-work"><option value="all">Toutes les œuvres</option>'+works().map(w=>'<option value="'+escapeHtml(w.oeuvre_id)+'" '+(String(w.oeuvre_id)===work?'selected':'')+'>'+escapeHtml(w.titre||w.oeuvre_id)+'</option>').join('')+'</select></label></div>';
+ const stats=()=>{const list=visible().filter(e=>{const d=dateOf(e.date);return d&&d.getFullYear()===year&&(view==='annual'||(view==='quarter'?Math.floor(d.getMonth()/3)===quarter:d.getMonth()===month))});return '<div class="pc-summary"><div class="pc-stat"><strong>'+list.length+'</strong><span>Publications planifiées</span></div><div class="pc-stat"><strong>'+new Set(list.map(e=>e.workId||'')).size+'</strong><span>Œuvres / axes concernés</span></div><div class="pc-stat"><strong>'+new Set(list.map(e=>e.channel).filter(Boolean)).size+'</strong><span>Canaux utilisés</span></div><div class="pc-stat"><strong>'+campaigns().length+'</strong><span>Campagnes enregistrées (total)</span></div></div>'};
+ const annual=()=>'<h2>Vue annuelle · '+year+'</h2><p class="pc-note">Synthèse des publications par mois et par œuvre. Les nombres sont des volumes, pas des objectifs à remplir.</p><div class="pc-table-wrap"><table><thead><tr><th>Œuvre / axe</th>'+labels.map(m=>'<th>'+m.slice(0,3)+'</th>').join('')+'<th>Total</th></tr></thead><tbody>'+relevantIds().map(id=>'<tr><td>'+escapeHtml(label(id))+'</td>'+labels.map((m,i)=>{const n=count(year,i,id);return '<td>'+(n?'<span class="pc-cell">'+n+'</span>':'<span class="pc-empty">·</span>')+'</td>'}).join('')+'<td><strong>'+labels.reduce((n,m,i)=>n+count(year,i,id),0)+'</strong></td></tr>').join('')+'</tbody></table></div>';
+ const quarterView=()=>{const start=new Date(year,quarter*3,1),end=new Date(year,quarter*3+3,1);const weeks=[];let cursor=new Date(start);cursor.setDate(cursor.getDate()-((cursor.getDay()+6)%7));while(cursor<end){weeks.push(new Date(cursor));cursor.setDate(cursor.getDate()+7)}return '<h2>Vue trimestrielle · T'+(quarter+1)+' '+year+'</h2><p class="pc-note">Lecture hebdomadaire par œuvre. Chaque cellule indique le nombre de publications et les canaux employés.</p><div class="pc-table-wrap"><table><thead><tr><th>Œuvre / projet</th>'+weeks.map(d=>'<th>'+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+'</th>').join('')+'</tr></thead><tbody>'+relevantIds().map(id=>'<tr><td>'+escapeHtml(label(id))+'</td>'+weeks.map(d=>{const stop=new Date(d);stop.setDate(stop.getDate()+7);const items=visible().filter(e=>String(e.workId||'')===id).filter(e=>{const x=dateOf(e.date);return x&&x>=d&&x<stop&&x>=start&&x<end});return '<td>'+(items.length?'<span class="pc-cell">'+items.length+'</span><div style="font-size:10px;margin-top:4px">'+escapeHtml([...new Set(items.map(e=>e.channel||'Autre'))].join(', '))+'</div>':'<span class="pc-empty">·</span>')+'</td>'}).join('')+'</tr>').join('')+'</tbody></table></div>'};
+ const monthly=()=>{const first=new Date(year,month,1),offset=(first.getDay()+6)%7,days=new Date(year,month+1,0).getDate();let cells=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(x=>'<div style="text-align:center;font-size:12px;font-weight:700">'+x+'</div>');for(let i=0;i<Math.ceil((offset+days)/7)*7;i++){const day=i-offset+1,valid=day>0&&day<=days;const date=new Date(year,month,day);const items=valid?visible().filter(e=>inMonth(e,year,month)&&dateOf(e.date).getDate()===day):[];cells.push('<div class="pc-day '+(valid?'':'other')+'">'+(valid?'<strong>'+day+'</strong>':'')+items.map(e=>'<span class="pc-event" title="'+escapeHtml(label(e.workId))+'">'+escapeHtml(e.title||'Publication')+'<small>'+escapeHtml(e.channel||'')+'</small></span>').join('')+'</div>')}return '<h2>Vue mensuelle · '+labels[month]+' '+year+'</h2><div class="pc-calendar">'+cells.join('')+'</div>'};
+ function render(){const z=document.getElementById('pa-cockpit-v14');if(!z)return;z.innerHTML='<div class="pc-head"><div><h1>Communication & Marketing</h1><p>Une seule vision, trois échelles, une charge de communication maîtrisée.</p></div><span class="pill">Lecture seule · prototype</span></div>'+nav()+controls()+stats()+(view==='annual'?annual():view==='quarter'?quarterView():monthly())+'<p class="pc-note">Cette première vue utilise les événements et les œuvres existants. Les campagnes, routines et ressources seront reliées dans les prochaines étapes, sans modifier les données.</p><div class="pc-links"><button class="btn sm" id="pc-old-comm">Rendez-vous & ressources existants</button><button class="btn sm" id="pc-old-marketing">Campagnes & promotions existantes</button></div>';
+ z.querySelectorAll('[data-pc-view]').forEach(b=>b.onclick=()=>{view=b.dataset.pcView;render()});
+ z.querySelector('#pc-year').onchange=e=>{year=+e.target.value;render()};
+ z.querySelector('#pc-work').onchange=e=>{work=e.target.value;render()};
+ const q=z.querySelector('#pc-quarter');if(q)q.onchange=e=>{quarter=+e.target.value;render()};
+ const m=z.querySelector('#pc-month');if(m)m.onchange=e=>{month=+e.target.value;render()};
+ const move=n=>{if(view==='annual')year+=n;else if(view==='quarter'){quarter+=n;if(quarter<0){quarter=3;year--}if(quarter>3){quarter=0;year++}}else{month+=n;if(month<0){month=11;year--}if(month>11){month=0;year++}}render()};
+ z.querySelector('#pc-prev').onclick=()=>move(-1);z.querySelector('#pc-next').onclick=()=>move(1);
+ z.querySelector('#pc-old-comm').onclick=()=>originalGo('communication');
+ z.querySelector('#pc-old-marketing').onclick=()=>originalGo('marketing');
+ }
+ const page=document.createElement('section');page.id='pa-cockpit-v14';page.className='page';document.querySelector('main')?.appendChild(page);
+ const originalGo=go;
+ go=async function(id){if(id==='communication'||id==='marketing'||id==='pa-cockpit-v14'){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));page.classList.add('active');document.querySelectorAll('.nav button[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='communication'));render();return}return originalGo(id)};
+ document.querySelectorAll('.nav button[data-page="communication"]').forEach(b=>b.textContent='📣 Communication & Marketing');
+ document.querySelectorAll('.nav button[data-page="marketing"]').forEach(b=>{b.style.display='none'});
+ window.openPasseAilesLegacyV14=function(which){return originalGo(which)};
+ document.addEventListener('click',function(e){const b=e.target.closest('#pa-cockpit-v14 #pc-old-comm,#pa-cockpit-v14 #pc-old-marketing');if(!b)return;setTimeout(()=>{const p=document.getElementById(b.id==='pc-old-comm'?'communication':'marketing');if(p){page.classList.remove('active');p.classList.add('active')}},0)});
+})();
+</script>
+</body></html>
