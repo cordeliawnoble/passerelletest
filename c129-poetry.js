@@ -103,8 +103,13 @@ navigate=function(key){
   ++poetryToken129;
   if(key==='poesie'){
     const result=previous(key);
-    // La page Recueils charge ses cartes de façon asynchrone.
-    poetryTabs131('recueils');
+    // Le rendu asynchrone de Poésie remplace le DOM : restaurer les onglets après rendu.
+    const poetryToken129AtNavigation=poetryToken129;
+    [0,150,400,900,1600].forEach(ms=>setTimeout(()=>{
+      if(poetryToken129!==poetryToken129AtNavigation)return;
+      const root=document.getElementById('content');
+      if(root&&!root.querySelector('#p131-tabs'))poetryTabs131('recueils');
+    },ms));
     return result;
   }
   return previous(key);
