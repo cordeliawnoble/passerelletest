@@ -85,6 +85,24 @@ function poetryTabs131(which){
  a.onclick=()=>navigate('poesie');b.onclick=()=>navigate('poetry129');
  bar.append(a,b);root.prepend(bar);
 }
+// C132 : afficher les poèmes liés à un recueil dans sa fiche existante,
+// même lorsque ce recueil n'est pas leur recueil principal.
+if(typeof renderRecueilPoemes==='function'){
+ const originalRecueilPoemes132=renderRecueilPoemes;
+ renderRecueilPoemes=async function(zone){
+   await originalRecueilPoemes132(zone);
+   if(!zone||!currentRecueilId)return;
+   const [m,p]=await Promise.all([
+     api().from('poemes_recueils').select('poeme_id,ordre').eq('recueil_id',currentRecueilId),
+     api().from('poemes').select('*')
+   ]);
+   if(m.error||p.error)return;
+   const byId=new Map((p.data||[]).map(x=>[x.id,x]));
+   const known=new Set(recueilPoemesData.map(x=>x.id));
+   const extra=(m.data||[]).filter(x=>!known.has(x.poeme_id)).map(x=>({...byId.get(x.poeme_id),ordre:x.ordre})).filter(x=>x.id);
+   if(extra.length){recueilPoemesData=[...recueilPoemesData,...extra].sort((a,b)=>(a.ordre||0)-(b.ordre||0));renderPoemesTable()}
+ };
+}
 const previous=navigate;
 let poetryToken129=0;
 navigate=function(key){
