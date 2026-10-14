@@ -507,7 +507,51 @@ const renderCatalogueBeforeCorrectV13=renderCatalogue;renderCatalogue=function()
 function editBlurbInlineV13(){const d=dossierState(currentDossier),box=document.getElementById('blurb-v11');if(!box)return;const current=d.blurb||box.innerText||'';box.innerHTML=`<textarea class="inline-edit-v13r" id="blurb-edit-v13">${esc(current)}</textarea><div style="margin-top:8px"><button class="btn sm primary" onclick="saveBlurbInlineV13()">Enregistrer</button> <button class="btn sm" onclick="renderDossierTab('overview')">Annuler</button></div>`}
 function saveBlurbInlineV13(){const d=dossierState(currentDossier);d.blurb=v('blurb-edit-v13');persist();renderDossierTab('overview')}
 editBlurbV11=editBlurbInlineV13;
-function renderBackofficeV13(){const b=document.getElementById('backoffice');if(!b)return;b.innerHTML=`<div class="head"><div><h1>Back-office</h1><p>Administration technique de Passe-Ailes.</p></div></div><div class="bo-shell-v13r"><aside class="bo-nav-v13r"><div class="bo-brand-v13r">⚙ Back-office</div><button class="${paBoTabV13==='appearance'?'active':''}" onclick="boTabV13('appearance')">🎨 Apparence</button><button class="${paBoTabV13==='navigation'?'active':''}" onclick="boTabV13('navigation')">▦ Navigation & heroes</button><button class="${paBoTabV13==='sync'?'active':''}" onclick="boTabV13('sync')">↻ Synchronisations</button><button class="${paBoTabV13==='backup'?'active':''}" onclick="boTabV13('backup')">⇩ Sauvegarde & exports</button><button class="${paBoTabV13==='identity'?'active':''}" onclick="boTabV13('identity')">♙ Identification</button></aside><div class="bo-main-v13r"><section class="bo-panel-v13r ${paBoTabV13==='appearance'?'active':''}" data-bo="appearance"><h2>Apparence</h2><div class="bo-settings-v13r"><div class="bo-setting-v13r"><b>Thème</b><p><button class="btn sm" onclick="setThemeV11('light')">☀ Clair</button> <button class="btn sm" onclick="setThemeV11('dark')">☾ Sombre</button></p></div><div class="bo-setting-v13r"><b>Couleur principale</b><p><input type="color" value="${localStorage.getItem('passeailes-accent')||'#76558e'}" onchange="setAccentV11(this.value)"></p></div></div></section><section class="bo-panel-v13r ${paBoTabV13==='navigation'?'active':''}" data-bo="navigation"><h2>Navigation & heroes</h2><div class="card"><p>Les heroes et bannières seront téléversables ici, sans URL manuelle.</p><button class="btn sm" disabled>Téléverser un hero</button></div></section><section class="bo-panel-v13r ${paBoTabV13==='sync'?'active':''}" data-bo="sync"><h2>Synchronisations</h2><div class="bo-setting-v13r"><b>Passerelle</b><p class="note">Œuvres et identifiants canoniques.</p><span class="pill">Connecté</span></div></section><section class="bo-panel-v13r ${paBoTabV13==='backup'?'active':''}" data-bo="backup"><h2>Sauvegarde & exports</h2><button class="btn" onclick="exportData()">Exporter les données</button></section><section class="bo-panel-v13r ${paBoTabV13==='identity'?'active':''}" data-bo="identity"><h2>Identification</h2><p class="note">Réglages techniques du compte et de l’application.</p></section></div></div>`}
+function renderBackofficeV13(){const b=document.getElementById('backoffice');if(!b)return;b.innerHTML=`<div class="head"><div><h1>Back-office</h1><p>Administration technique de Passe-Ailes.</p></div></div><div class="bo-shell-v13r"><aside class="bo-nav-v13r"><div class="bo-brand-v13r">⚙ Back-office</div><button class="${paBoTabV13==='appearance'?'active':''}" onclick="boTabV13('appearance')">🎨 Apparence</button><button class="${paBoTabV13==='navigation'?'active':''}" onclick="boTabV13('navigation')">▦ Navigation & heroes</button><button class="${paBoTabV13==='sync'?'active':''}" onclick="boTabV13('sync')">↻ Synchronisations</button><button class="${paBoTabV13==='backup'?'active':''}" onclick="boTabV13('backup')">⇩ Sauvegarde & exports</button><button class="${paBoTabV13==='identity'?'active':''}" onclick="boTabV13('identity')">♙ Identification</button></aside><div class="bo-main-v13r"><section class="bo-panel-v13r ${paBoTabV13==='appearance'?'active':''}" data-bo="appearance"><h2>Apparence</h2><div class="bo-settings-v13r"><div class="bo-setting-v13r"><b>Thème</b><p><button class="btn sm" onclick="setThemeV11('light')">☀ Clair</button> <button class="btn sm" onclick="setThemeV11('dark')">☾ Sombre</button></p></div><div class="bo-setting-v13r"><b>Couleur principale</b><p><input type="color" value="${localStorage.getItem('passeailes-accent')||'#76558e'}" onchange="setAccentV11(this.value)"></p></div></div></section><section class="bo-panel-v13r ${paBoTabV13==='navigation'?'active':''}" data-bo="navigation"><h2>Navigation & heroes</h2><div class="card"><p>Les heroes et bannières seront téléversables ici, sans URL manuelle.</p><button class="btn sm" disabled>Téléverser un hero</button></div></section><section class="bo-panel-v13r ${paBoTabV13==='sync'?'active':''}" data-bo="sync"><h2>Synchronisations</h2><div class="bo-setting-v13r"><b>Passerelle</b><p class="note">Œuvres et identifiants canoniques.</p><span class="pill">Connecté</span></div></section><section class="bo-panel-v13r ${paBoTabV13==='backup'?'active':''}" data-bo="backup"><h2>Sauvegarde & exports</h2><button class="btn" onclick="exportData()">Exporter les données</button><div class="card" style="margin-top:16px"><h3>Diagnostic de synchronisation (lecture seule)</h3><p class="note">Compare les données du navigateur avec Supabase. Ne modifie rien et ne lance aucune synchronisation.</p><button class="btn sm" onclick="auditSyncReadOnlyV13()">Vérifier la synchronisation</button><pre id="pa-sync-audit-v13" style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:13px;margin-top:12px" aria-live="polite">Aucun diagnostic lancé.</pre></div></section><section class="bo-panel-v13r ${paBoTabV13==='identity'?'active':''}" data-bo="identity"><h2>Identification</h2><p class="note">Réglages techniques du compte et de l’application.</p></section></div></div>`}
+async function auditSyncReadOnlyV13(){
+  const out=document.getElementById('pa-sync-audit-v13');
+  if(!out)return;
+  const lines=[];
+  const add=x=>{lines.push(x);out.textContent=lines.join('\n')};
+  const count=(x,k)=>Array.isArray(x?.[k])?x[k].length:'non disponible';
+  const summary=(label,s,w)=>{
+    add(label+' : campagnes '+count(s,'campaigns')+', événements '+count(s,'events')+', promotions '+count(s,'promotions')+', obligations '+count(s,'obligations')+', documents '+count(s,'documents')+', œuvres '+(Array.isArray(w)?w.length:'non disponible'));
+  };
+  out.textContent='Diagnostic en cours (lecture seule)…';
+  try{
+    let storedState=null,storedWorks=null;
+    try{storedState=JSON.parse(localStorage.getItem(DATA_KEY)||'null')}catch(e){add('Attention : données locales principales illisibles.')}
+    try{storedWorks=JSON.parse(localStorage.getItem(WORK_KEY)||'null')}catch(e){add('Attention : œuvres locales illisibles.')}
+    summary('Navigateur (stockage)',storedState,storedWorks);
+    summary('Application (mémoire)',state,proWorks);
+    const {data:auth,error:authError}=await sb.auth.getUser();
+    if(authError){add('Connexion Supabase : erreur de session ('+authError.message+').');return}
+    if(!auth?.user){add('Connexion Supabase : aucun utilisateur connecté. Lecture serveur impossible.');return}
+    add('Connexion Supabase : utilisateur authentifié.');
+    const uid=auth.user.id;
+    const [sr,wr]=await Promise.all([
+      db().from('passe_ailes_state').select('payload,updated_at').eq('user_id',uid).maybeSingle(),
+      db().from('passe_ailes_oeuvres').select('oeuvre_id,payload,updated_at').eq('user_id',uid)
+    ]);
+    if(sr.error){add('Données serveur : lecture impossible ('+sr.error.message+').');return}
+    if(wr.error){add('Œuvres serveur : lecture impossible ('+wr.error.message+').');return}
+    const remoteState=sr.data?.payload||null;
+    const remoteWorks=(wr.data||[]).map(x=>x.payload);
+    summary('Supabase',remoteState,remoteWorks);
+    add('Dernière mise à jour serveur (état) : '+(sr.data?.updated_at||'non disponible'));
+    const localState=storedState||state;
+    if(remoteState){
+      const keys=['campaigns','events','promotions','obligations','documents'];
+      const diffs=keys.filter(k=>JSON.stringify(localState?.[k]??null)!==JSON.stringify(remoteState?.[k]??null));
+      add('Comparaison des contenus principaux : '+(diffs.length?'différences détectées dans '+diffs.join(', '):'aucune différence détectée dans les catégories contrôlées'));
+    }else add('Aucun état Passe-Ailes enregistré sur Supabase.');
+    const localIds=new Set((Array.isArray(storedWorks)?storedWorks:proWorks).map(w=>String(w.oeuvre_id)));
+    const remoteIds=new Set(remoteWorks.map(w=>String(w.oeuvre_id)));
+    add('Œuvres uniquement locales : '+[...localIds].filter(x=>!remoteIds.has(x)).length);
+    add('Œuvres uniquement sur Supabase : '+[...remoteIds].filter(x=>!localIds.has(x)).length);
+    add('Diagnostic terminé. Aucune donnée modifiée. Ne pas interpréter des nombres identiques comme une synchronisation garantie.');
+  }catch(e){add('Diagnostic interrompu : '+(e?.message||String(e))+'. Aucune écriture lancée par le diagnostic.');}
+}
 function exportData(){
   try {
     const localEntries={};
