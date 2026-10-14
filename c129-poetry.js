@@ -52,6 +52,13 @@ window.poetrySave129=async id=>{
 window.poetryImport129=async file=>{
  if(!file)return;const raw=csvRows(await file.text());
  const items=raw.map(r=>({titre:r.titre||'',texte:r.texte||'',origine:r["recueil d'origine"]||'',oeuvre:r['oeuvre actuelle']||'',ordre:Number(r.ordre)||0,theme:r.theme||'',date:r["date d'ecriture"]||''})).filter(r=>r.titre.trim());
+ // Si le CSV ne renseigne aucun recueil, utiliser celui choisi dans le filtre de la bibliothèque.
+ const selectedRecueil=active&&works.find(w=>w.id===active);
+ const missing=items.filter(x=>!x.oeuvre.trim());
+ if(missing.length){
+   if(!selectedRecueil)return notify(missing.length+' poème(s) sans recueil dans le CSV. Sélectionne d’abord le recueil de destination dans le menu « Tous les recueils », puis relance l’import.');
+   for(const x of missing)x.oeuvre=selectedRecueil.titre;
+ }
  if(!items.length)return notify('Aucun poème reconnu dans le CSV.');
  const dup=items.filter(x=>poems.some(p=>p.titre.trim().toLowerCase()===x.titre.trim().toLowerCase()));
  const unknown=[...new Set(items.map(x=>x.oeuvre).filter(x=>x&&!works.some(w=>w.titre.toLowerCase()===x.toLowerCase())))];
