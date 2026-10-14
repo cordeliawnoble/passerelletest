@@ -35,15 +35,18 @@ window.poetryOpen129=id=>{
 };
 window.poetrySave129=async id=>{
  const titre=document.getElementById('p129-title').value.trim();if(!titre)return notify('Titre requis.');
- const data={titre,texte:document.getElementById('p129-text').value,recueil_origine:document.getElementById('p129-origin').value||null,theme:document.getElementById('p129-theme').value||null,theme_principal:document.getElementById('p129-theme').value||null,user_id:user()};
+ const wanted=new Set([...document.querySelectorAll('.p129-link:checked')].map(x=>x.value));
+ if(!wanted.size)return notify('Choisis au moins un recueil : Passerelle exige un recueil principal.');
+ const existing=poems.find(p=>p.id===id);
+ const primary=existing&&wanted.has(existing.recueil_id)?existing.recueil_id:[...wanted][0];
+ const data={titre,texte:document.getElementById('p129-text').value,recueil_id:primary,recueil_origine:document.getElementById('p129-origin').value||null,theme:document.getElementById('p129-theme').value||null,theme_principal:document.getElementById('p129-theme').value||null,user_id:user()};
  const r=id?await api().from('poemes').update(data).eq('id',id).select('id').single():await api().from('poemes').insert(data).select('id').single();
  if(r.error)return notify(r.error.message);
- const pid=r.data.id;const wanted=new Set([...document.querySelectorAll('.p129-link:checked')].map(x=>x.value));
+ const pid=r.data.id;
  const old=links.filter(x=>x.poeme_id===pid);const toRemove=old.filter(x=>!wanted.has(x.recueil_id));
  for(const l of toRemove){const d=await api().from('poemes_recueils').delete().eq('poeme_id',pid).eq('recueil_id',l.recueil_id);if(d.error)return notify(d.error.message)}
  const toAdd=[...wanted].filter(w=>!old.some(l=>l.recueil_id===w)).map(w=>({poeme_id:pid,recueil_id:w,user_id:user()}));
  if(toAdd.length){const a=await api().from('poemes_recueils').insert(toAdd);if(a.error)return notify(a.error.message)}
- const primary=[...wanted][0]||null;const primaryResult=await api().from('poemes').update({recueil_id:primary}).eq('id',pid);if(primaryResult.error)return notify(primaryResult.error.message)
  poetryClose129();await renderPoetry129();
 };
 window.poetryImport129=async file=>{
@@ -55,9 +58,9 @@ window.poetryImport129=async file=>{
  if(dup.length||unknown.length){notify('Import interrompu pour éviter les doublons ou les poèmes non rattachés.\nTitres déjà présents : '+dup.map(x=>x.titre).join(', ')+'\nŒuvres inconnues : '+unknown.join(', '));return}
  if(!confirm('Importer '+items.length+' poème(s) en conservant les strophes ?\nExemple : '+items[0].titre+'\n'+items[0].texte.slice(0,250)))return;
  let ok=0;const errs=[];
- for(const x of items){const d={titre:x.titre,texte:x.texte,recueil_origine:x.origine||null,theme:x.theme||null,theme_principal:x.theme||null,user_id:user()};if(/^\d{4}-\d{2}-\d{2}$/.test(x.date))d.date_ecriture=x.date;
+ for(const x of items){const w=works.find(w=>w.titre.toLowerCase()===x.oeuvre.toLowerCase());if(!w){errs.push(x.titre+': aucun recueil valide');continue}const d={titre:x.titre,texte:x.texte,recueil_id:w.id,recueil_origine:x.origine||null,theme:x.theme||null,theme_principal:x.theme||null,user_id:user()};if(/^\d{4}-\d{2}-\d{2}$/.test(x.date))d.date_ecriture=x.date;
  const r=await api().from('poemes').insert(d).select('id').single();if(r.error){errs.push(x.titre+': '+r.error.message);continue}
- const w=works.find(w=>w.titre.toLowerCase()===x.oeuvre.toLowerCase());if(w){const upd=await api().from('poemes').update({recueil_id:w.id}).eq('id',r.data.id);if(upd.error)errs.push(x.titre+': recueil principal '+upd.error.message);const a=await api().from('poemes_recueils').insert({poeme_id:r.data.id,recueil_id:w.id,user_id:user(),ordre:x.ordre});if(a.error)errs.push(x.titre+': association échouée '+a.error.message)}
+ if(w){const a=await api().from('poemes_recueils').insert({poeme_id:r.data.id,recueil_id:w.id,user_id:user(),ordre:x.ordre});if(a.error)errs.push(x.titre+': association échouée '+a.error.message)}
  ok++}
  notify(ok+' poème(s) importé(s).'+(errs.length?'\n'+errs.join('\n'):''));await renderPoetry129();
 };
