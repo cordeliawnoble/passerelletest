@@ -870,4 +870,57 @@ document.getElementById('planning')?.querySelector('.head h1')?.replaceChildren(
 })();
 </script>
 
+
+<style id="pa-atelier-v18-style">
+#communication .head>button{display:none!important}
+#communication .pa18-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0}
+#communication .pa18-action{background:var(--card,#fff);border:1px solid #e2d7e9;border-radius:15px;padding:20px;text-align:left;cursor:pointer;color:inherit;min-height:136px}
+#communication .pa18-action strong{display:block;font-size:18px;margin:9px 0}
+#communication .pa18-action small{display:block;line-height:1.5;color:var(--muted,#786e80)}
+#communication .pa18-action:hover{border-color:#b27add;box-shadow:0 5px 18px #71528b16}
+#communication .pa18-section{margin-top:25px}
+#communication .pa18-entries{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+#communication .pa18-entry{padding:16px;border:1px solid #e3d7e9;background:var(--card,#fff);border-radius:12px}
+#communication .pa18-entry small{display:block;margin:8px 0;color:var(--muted,#786e80)}
+</style>
+<script id="pa-atelier-v18">
+(function(){
+const comm=document.getElementById('communication'),tabs=comm?.querySelector('#comm-tabs');
+if(!comm||!tabs)return;
+tabs.innerHTML='<button data-ctab="atelier" class="active">Atelier</button><button data-ctab="overview">À préparer</button><button data-ctab="resources">Bibliothèque</button>';
+const oldRender=renderCommunication;
+function openGroupFromAtelier(){
+ const btn=document.querySelector('#pv15-group-new');
+ if(btn){btn.click();return}
+ const month=document.querySelector('.nav button[data-page="planning"]');
+ if(month){go('planning');const b=document.querySelector('#pv15-group-new');if(b){b.click();return}}
+ alert('Le formulaire de promotion groupée est disponible dans la vue mensuelle du Planning.');
+}
+function atelier(){
+ const z=document.getElementById('communication-zone');
+ const routines=commRoutines(),groups=Array.isArray(state.groupPromotions)?state.groupPromotions:[];
+ z.innerHTML='<h2>Atelier de communication</h2><p>Choisis ce que tu veux lancer. Les éléments à produire seront suivis dans « À préparer ».</p>'+
+ '<div class="pa18-actions"><button type="button" class="pa18-action" id="pa18-routine"><span>🔁</span><strong>Rendez-vous récurrent</strong><small>Blabla du lundi, bilan mensuel, rendez-vous réguliers</small></button>'+
+ '<button type="button" class="pa18-action" id="pa18-group"><span>✨</span><strong>Promotion groupée</strong><small>Une opération de communication pour plusieurs œuvres</small></button>'+
+ '<button type="button" class="pa18-action" id="pa18-publication"><span>📣</span><strong>Publication d’autrice</strong><small>Annonce, actualité, podcast ou communication indépendante des œuvres</small></button>'+
+ '<button type="button" class="pa18-action" id="pa18-prep"><span>📝</span><strong>Contenu à préparer</strong><small>Créer une fiche de travail sans programmer de publication</small></button></div>'+
+ '<section class="pa18-section"><h3>Rendez-vous récurrents · '+routines.length+'</h3><div class="pa18-entries">'+(routines.length?routines.map(x=>'<article class="pa18-entry"><strong>'+esc(x.name)+'</strong><small>'+esc(x.dayLabel||'')+' · '+esc((x.platforms||[x.platform].filter(Boolean)).join(', '))+'</small><button class="btn sm" data-pa18-routine="'+esc(x.id)+'">Modifier</button></article>').join(''):'<div class="empty">Aucun rendez-vous récurrent.</div>')+'</div></section>'+
+ '<section class="pa18-section"><h3>Promotions groupées · '+groups.length+'</h3><div class="pa18-entries">'+(groups.length?groups.map(x=>'<article class="pa18-entry"><strong>✨ '+esc(x.title)+'</strong><small>'+esc(x.date)+' · '+(x.workIds||[]).length+' œuvres · '+esc(x.channel||'')+'</small></article>').join(''):'<div class="empty">Aucune promotion groupée pour le moment.</div>')+'</div></section>';
+ z.querySelector('#pa18-routine').onclick=()=>openRoutine();
+ z.querySelector('#pa18-group').onclick=openGroupFromAtelier;
+ z.querySelector('#pa18-publication').onclick=()=>openCommEvent();
+ z.querySelector('#pa18-prep').onclick=()=>{renderCommunication('overview');document.getElementById('pa-v17-new')?.click()};
+ z.querySelectorAll('[data-pa18-routine]').forEach(b=>b.onclick=()=>openRoutine(b.dataset.pa18Routine));
+}
+renderCommunication=function(tab='atelier'){
+ document.querySelectorAll('#comm-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.ctab===tab));
+ if(tab==='atelier')return atelier();
+ return oldRender(tab);
+};
+tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>renderCommunication(b.dataset.ctab));
+const previousGo=go;
+go=function(id){if(id==='communication'){previousGo(id);renderCommunication('atelier');return}return previousGo(id)};
+})();
+</script>
+
 </body></html>
