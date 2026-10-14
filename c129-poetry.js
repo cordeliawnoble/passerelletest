@@ -63,7 +63,7 @@ window.poetryImport129=async file=>{
 window.renderPoetry129=async()=>{
  const root=document.getElementById('content');if(!root)return;
  root.innerHTML='<div class="panel">Chargement des poèmes…</div>';
- const [p,l,w]=await Promise.all([api().from('poemes').select('*').order('titre'),api().from('poemes_oeuvres').select('*'),api().from('oeuvres').select('id,titre').order('titre')]);
+ const [p,l,w]=await Promise.all([api().from('poemes').select('*').order('titre'),api().from('poemes_oeuvres').select('*'),api().from('recueils').select('id,titre').eq('archive',false).order('titre')]);
  const err=p.error||l.error||w.error;if(err){root.innerHTML='<div class="panel">Bibliothèque indisponible : '+E(err.message)+'</div>';return}
  poems=p.data||[];links=l.data||[];works=w.data||[];
  root.innerHTML='<section class="p129"><h1>📜 Bibliothèque poétique</h1><p>Un poème, plusieurs recueils possibles.</p><div class="tools"><button class="btn-primary" onclick="poetryOpen129(\'\')">+ Nouveau poème</button><button class="btn-secondary" onclick="poetryTemplate129()">Modèle CSV</button><label class="btn-secondary">Importer CSV <input type="file" accept=".csv" style="display:none" onchange="poetryImport129(this.files[0]);this.value=\'\'"></label><select onchange="poetryFilter129(this.value)"><option value="">Tous les recueils</option>'+works.map(w=>'<option value="'+E(w.id)+'" '+(active===w.id?'selected':'')+'>'+E(w.titre)+'</option>').join('')+'</select><input id="p129-search" placeholder="Rechercher…" oninput="poetryRefresh129()"><span id="p129-count"></span></div><div class="panel" style="overflow:auto"><table><thead><tr><th>✓</th><th>Poème</th><th>Recueil d’origine</th><th>Présent dans</th></tr></thead><tbody id="p129-rows"></tbody></table></div></section>';
