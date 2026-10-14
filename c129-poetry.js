@@ -58,11 +58,11 @@ window.poetryImport129=async file=>{
  if(dup.length||unknown.length){notify('Import interrompu pour éviter les doublons ou les poèmes non rattachés.\nTitres déjà présents : '+dup.map(x=>x.titre).join(', ')+'\nŒuvres inconnues : '+unknown.join(', '));return}
  if(!confirm('Importer '+items.length+' poème(s) en conservant les strophes ?\nExemple : '+items[0].titre+'\n'+items[0].texte.slice(0,250)))return;
  let ok=0;const errs=[];
- for(const x of items){const w=works.find(w=>w.titre.toLowerCase()===x.oeuvre.toLowerCase());if(!w){errs.push(x.titre+': aucun recueil valide');continue}const d={titre:x.titre,texte:x.texte,recueil_id:w.id,recueil_origine:x.origine||null,theme:x.theme||null,theme_principal:x.theme||null,user_id:user()};if(/^\d{4}-\d{2}-\d{2}$/.test(x.date))d.date_ecriture=x.date;
- const r=await api().from('poemes').insert(d).select('id').single();if(r.error){errs.push(x.titre+': '+r.error.message);continue}
- if(w){const a=await api().from('poemes_recueils').insert({poeme_id:r.data.id,recueil_id:w.id,user_id:user(),ordre:x.ordre});if(a.error)errs.push(x.titre+': association échouée '+a.error.message)}
+ for(const x of items){const w=works.find(w=>w.titre.trim().toLocaleLowerCase('fr')===x.oeuvre.trim().toLocaleLowerCase('fr'));if(!w){errs.push(x.titre+': recueil non trouvé ('+x.oeuvre+')');break}const d={titre:x.titre,texte:x.texte,recueil_id:w.id,recueil_origine:x.origine||null,theme:x.theme||null,theme_principal:x.theme||null,user_id:user()};if(/^\d{4}-\d{2}-\d{2}$/.test(x.date))d.date_ecriture=x.date;
+ const r=await api().from('poemes').insert(d).select('id').single();if(r.error){errs.push(x.titre+': '+r.error.message+(r.error.details?' | '+r.error.details:'')+(r.error.hint?' | '+r.error.hint:''));break}
+ if(w){const a=await api().from('poemes_recueils').insert({poeme_id:r.data.id,recueil_id:w.id,user_id:user(),ordre:x.ordre});if(a.error){errs.push(x.titre+': association échouée '+a.error.message);break}}
  ok++}
- notify(ok+' poème(s) importé(s).'+(errs.length?'\n'+errs.join('\n'):''));await renderPoetry129();
+ notify(ok+' poème(s) importé(s) sur '+items.length+'.'+(errs.length?'\nImport arrêté à la première erreur pour protéger les données :\n'+errs.join('\n'):''));await renderPoetry129();
 };
 window.renderPoetry129=async()=>{
  const root=document.getElementById('content');if(!root)return;
