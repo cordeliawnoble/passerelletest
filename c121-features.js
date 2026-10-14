@@ -877,9 +877,14 @@
   planningScript130.src='c130-planning.js?v=13002';
   document.body.appendChild(planningScript130);
 
+  // C133 : export DOCX disponible avant l'initialisation de la bibliothèque.
+  const wordScript133=document.createElement('script');
+  wordScript133.src='c133-word-export.js?v=13301';
+  document.body.appendChild(wordScript133);
+
   // C129 : charge le module poésie après initialisation des fonctions Passerelle.
   const poetryScript129=document.createElement('script');
-  poetryScript129.src='c129-poetry.js?v=13204';
+  poetryScript129.src='c129-poetry.js?v=13301';
   document.body.appendChild(poetryScript129);
 
 })();
