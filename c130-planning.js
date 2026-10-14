@@ -1,6 +1,10 @@
 /* C130 · Planning QC : ajout de sessions à une série existante */
 (function(){
 'use strict';
+// Correctif racine : la fenêtre « Nouvelle session » passe null à sessionPlanNumber.
+// L'ancienne fonction lisait s.chapitre_id sans vérifier s, ce qui interrompait l'ouverture.
+const originalSessionPlanNumber130=sessionPlanNumber;
+sessionPlanNumber=function(s){return s?originalSessionPlanNumber130(s):null};
 const esc130=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function sessions130(s){if(s.serie_id)return planningSessions.filter(x=>x.serie_id===s.serie_id).sort((a,b)=>a.date.localeCompare(b.date)||(a.ordre||0)-(b.ordre||0));return [s]}
 function last130(s){return sessions130(s).at(-1)}
