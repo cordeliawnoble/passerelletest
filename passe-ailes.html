@@ -821,4 +821,53 @@ document.getElementById('planning')?.querySelector('.head h1')?.replaceChildren(
 })();
 </script>
 
+
+<style id="pa-comm-v17-style">
+#communication .pa-v17-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0 22px}
+#communication .pa-v17-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
+#communication .pa-v17-item{padding:17px;border:1px solid #e4d9ea;border-radius:13px;background:var(--card,#fff);margin:9px 0}
+#communication .pa-v17-item h4{margin:0 0 8px}
+#communication .pa-v17-item small{display:block;margin:6px 0;color:var(--muted,#867b8d)}
+#communication .pa-v17-item .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#pa-v17-modal{display:none;position:fixed;inset:0;z-index:10001;background:#21172b99;align-items:center;justify-content:center;padding:16px}
+#pa-v17-modal.open{display:flex}
+#pa-v17-modal .pa-v17-dialog{width:min(540px,100%);max-height:90vh;overflow:auto;background:var(--card,#fff);border-radius:16px;padding:25px}
+#pa-v17-modal label{display:block;margin:12px 0;font-weight:600}
+#pa-v17-modal input,#pa-v17-modal select,#pa-v17-modal textarea{width:100%;padding:10px;border:1px solid #d9cce4;border-radius:9px;background:transparent;color:inherit;margin-top:5px}
+#pa-v17-modal .pa-v17-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+</style>
+<script id="pa-comm-v17">
+(function(){
+ const comm=document.getElementById('communication');
+ const headerButton=comm?.querySelector('.head button');
+ if(headerButton){headerButton.textContent='+ À préparer';headerButton.onclick=()=>openPrep()}
+ const modal=document.createElement('div');modal.id='pa-v17-modal';modal.innerHTML='<div class="pa-v17-dialog"><h2 id="pa-v17-heading">Contenu à préparer</h2><p>Une fiche de travail, indépendante des dates éditoriales.</p><label>Contenu / tâche<input id="pa-v17-title" maxlength="200"></label><label>Échéance de préparation (facultative)<input id="pa-v17-date" type="date"></label><label>Plateforme<select id="pa-v17-platform"><option value="">Non définie</option><option>Instagram</option><option>Site</option><option>Podcast</option><option>Newsletter</option><option>Autre</option></select></label><label>Type<select id="pa-v17-type"><option>Publication</option><option>Story</option><option>Reel</option><option>Podcast</option><option>Visuel</option><option>Autre</option></select></label><label>Statut<select id="pa-v17-status"><option>À préparer</option><option>En cours</option><option>Prêt</option></select></label><label>Notes<textarea id="pa-v17-notes" rows="3"></textarea></label><div class="pa-v17-actions"><button class="btn" id="pa-v17-cancel">Annuler</button><button class="btn primary" id="pa-v17-save">Enregistrer</button></div></div>';document.body.appendChild(modal);
+ let editId=null;
+ const preparations=()=>Array.isArray(state.communicationPreparations)?state.communicationPreparations:[];
+ function openPrep(id){editId=id||null;const x=preparations().find(v=>v.id===id)||{};for(const k of ['title','date','platform','type','status','notes'])modal.querySelector('#pa-v17-'+k).value=x[k]||(k==='type'?'Publication':k==='status'?'À préparer':'');modal.querySelector('#pa-v17-heading').textContent=id?'Modifier le contenu':'Nouveau contenu à préparer';modal.classList.add('open')}
+ modal.querySelector('#pa-v17-cancel').onclick=()=>modal.classList.remove('open');
+ modal.onclick=e=>{if(e.target===modal)modal.classList.remove('open')};
+ modal.querySelector('#pa-v17-save').onclick=()=>{
+  const x={};for(const k of ['title','date','platform','type','status','notes'])x[k]=modal.querySelector('#pa-v17-'+k).value.trim();
+  if(!x.title){alert('Le titre est nécessaire.');return}
+  x.id=editId||'PREP-'+Date.now();state.communicationPreparations=preparations().filter(v=>v.id!==x.id).concat(x);persist();modal.classList.remove('open');renderCommunication('overview')
+ };
+ const prev=renderCommunication;
+ renderCommunication=function(tab='overview'){
+  if(tab!=='overview')return prev(tab);
+  const z=document.getElementById('communication-zone');if(!z)return;
+  document.querySelectorAll('#comm-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.ctab===tab));
+  const items=preparations().slice().sort((a,b)=>(a.status==='Prêt')-(b.status==='Prêt')||String(a.date||'9999').localeCompare(String(b.date||'9999')));
+  const events=(state.events||[]).filter(x=>x.source==='communication'&&!x.workId&&!x.campaignId);
+  const groups=Array.isArray(state.groupPromotions)?state.groupPromotions:[];
+  z.innerHTML='<div class="pa-v17-top"><div><h2>À préparer</h2><p>Ton atelier de production, indépendant du calendrier de publication.</p></div><button class="btn primary" id="pa-v17-new">+ Contenu à préparer</button></div>'+
+   '<div class="kpis"><div class="card"><b>'+items.filter(x=>x.status!=='Prêt').length+'</b><span>contenus à préparer</span></div><div class="card"><b>'+items.filter(x=>x.status==='Prêt').length+'</b><span>contenus prêts</span></div><div class="card"><b>'+commRoutines().length+'</b><span>rendez-vous récurrents</span></div></div>'+
+   '<div class="pa-v17-grid"><div class="card"><h3>Contenus en préparation</h3>'+(items.length?items.map(x=>'<article class="pa-v17-item"><h4>'+esc(x.title)+'</h4><small>'+esc(x.type||'')+' · '+esc(x.platform||'Sans plateforme')+(x.date?' · À préparer pour le '+esc(x.date):'')+'</small><span class="pill">'+esc(x.status)+'</span>'+(x.notes?'<p>'+esc(x.notes)+'</p>':'')+'<div class="actions"><button class="btn sm" data-prep-edit="'+esc(x.id)+'">Modifier</button></div></article>').join(''):'<div class="empty">Aucun contenu enregistré. Crée une fiche pour ton prochain bilan, blabla, podcast ou visuel.</div>')+'</div>'+
+   '<div class="card"><h3>Repères de communication</h3><p><strong>'+events.length+'</strong> publication(s) transversale(s) datée(s)</p><p><strong>'+groups.length+'</strong> promotion(s) multi-œuvres</p><p><strong>'+commRoutines().length+'</strong> rendez-vous récurrent(s)</p><p>Les publications programmées restent visibles dans le Planning. Ici, on prépare les contenus, sans dupliquer les événements.</p></div></div>';
+  z.querySelector('#pa-v17-new').onclick=()=>openPrep();
+  z.querySelectorAll('[data-prep-edit]').forEach(b=>b.onclick=()=>openPrep(b.dataset.prepEdit));
+ };
+})();
+</script>
+
 </body></html>
