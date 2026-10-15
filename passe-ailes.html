@@ -843,6 +843,7 @@ document.getElementById('planning')?.querySelector('.head h1')?.replaceChildren(
  if(headerButton){headerButton.textContent='+ À préparer';headerButton.onclick=()=>openPrep()}
  const modal=document.createElement('div');modal.id='pa-v17-modal';modal.innerHTML='<div class="pa-v17-dialog"><h2 id="pa-v17-heading">Contenu à préparer</h2><p>Une fiche de travail, indépendante des dates éditoriales.</p><label>Contenu / tâche<input id="pa-v17-title" maxlength="200"></label><label>Échéance de préparation (facultative)<input id="pa-v17-date" type="date"></label><label>Plateforme<select id="pa-v17-platform"><option value="">Non définie</option><option>Instagram</option><option>Site</option><option>Podcast</option><option>Newsletter</option><option>Autre</option></select></label><label>Type<select id="pa-v17-type"><option>Publication</option><option>Story</option><option>Reel</option><option>Podcast</option><option>Visuel</option><option>Autre</option></select></label><label>Statut<select id="pa-v17-status"><option>À préparer</option><option>En cours</option><option>Prêt</option></select></label><label>Notes<textarea id="pa-v17-notes" rows="3"></textarea></label><div class="pa-v17-actions"><button class="btn" id="pa-v17-cancel">Annuler</button><button class="btn primary" id="pa-v17-save">Enregistrer</button></div></div>';document.body.appendChild(modal);
  let editId=null;
+ window.paOpenPreparationV17=(id)=>openPrep(id);
  const preparations=()=>Array.isArray(state.communicationPreparations)?state.communicationPreparations:[];
  function openPrep(id){editId=id||null;const x=preparations().find(v=>v.id===id)||{};for(const k of ['title','date','platform','type','status','notes'])modal.querySelector('#pa-v17-'+k).value=x[k]||(k==='type'?'Publication':k==='status'?'À préparer':'');modal.querySelector('#pa-v17-heading').textContent=id?'Modifier le contenu':'Nouveau contenu à préparer';modal.classList.add('open')}
  modal.querySelector('#pa-v17-cancel').onclick=()=>modal.classList.remove('open');
@@ -850,7 +851,7 @@ document.getElementById('planning')?.querySelector('.head h1')?.replaceChildren(
  modal.querySelector('#pa-v17-save').onclick=()=>{
   const x={};for(const k of ['title','date','platform','type','status','notes'])x[k]=modal.querySelector('#pa-v17-'+k).value.trim();
   if(!x.title){alert('Le titre est nécessaire.');return}
-  x.id=editId||'PREP-'+Date.now();state.communicationPreparations=preparations().filter(v=>v.id!==x.id).concat(x);persist();modal.classList.remove('open');renderCommunication('overview')
+  x.id=editId||'PREP-'+Date.now();state.communicationPreparations=preparations().filter(v=>v.id!==x.id).concat(x);persist();modal.classList.remove('open');renderCommunication('workshop')
  };
  const prev=renderCommunication;
  renderCommunication=function(tab='overview'){
@@ -1027,8 +1028,8 @@ go=function(id){if(id==='communication'){previousGo(id);renderCommunication('ate
  else if(cmd==='routine-edit')openRoutine(id);
  else if(cmd==='group')groupAction();
  else if(cmd==='publication')openCommEvent();
- else if(cmd==='prep'){render('workshop');document.getElementById('pa-v17-new')?.click();if(!document.getElementById('pa-v17-new'))document.querySelector('#pa-v17-modal')?.classList.add('open')}
- else if(cmd==='prep-edit'){const x=preps().find(v=>String(v.id)===id);if(x){document.querySelector('#pa-v17-modal')?.classList.add('open');for(const k of ['title','date','platform','type','status','notes']){const el=document.getElementById('pa-v17-'+k);if(el)el.value=x[k]||''} /* original edit handler is retained in legacy view */}}
+ else if(cmd==='prep'){render('workshop');window.paOpenPreparationV17?.()}
+ else if(cmd==='prep-edit'){window.paOpenPreparationV17?.(id)}
  else if(cmd==='idea-add'){const input=document.getElementById('pa19-idea');if(input?.value.trim()){state.communicationIdeas=ideas().concat({id:'IDEA-'+Date.now(),text:input.value.trim(),createdAt:new Date().toISOString()});persist();render()}}
  else if(cmd==='idea-remove'){if(confirm('Retirer cette idée ?')){state.communicationIdeas=ideas().filter(x=>String(x.id)!==id);persist();render()}}
  else if(cmd==='resource')openResource(null,id);
