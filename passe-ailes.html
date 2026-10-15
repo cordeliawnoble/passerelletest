@@ -923,4 +923,125 @@ go=function(id){if(id==='communication'){previousGo(id);renderCommunication('ate
 })();
 </script>
 
+
+<style id="pa-comm-v19-style">
+#communication .pa19-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0}
+#communication .pa19-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+#communication .pa19-tile{border:1px solid #e5d9eb;background:var(--card,#fff);border-radius:14px;padding:18px;text-align:left;cursor:pointer;color:inherit;min-height:112px}
+#communication .pa19-tile strong{display:block;margin:8px 0 5px;font-size:17px}
+#communication .pa19-tile small{color:var(--muted,#756b7a)}
+#communication .pa19-panel{border:1px solid #e5d9eb;background:var(--card,#fff);border-radius:15px;padding:18px;min-width:0}
+#communication .pa19-panel h3{margin:0 0 13px}
+#communication .pa19-line{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #eee7f1}
+#communication .pa19-line:last-child{border-bottom:0}
+#communication .pa19-line>div:first-child{flex:1;min-width:0}
+#communication .pa19-muted{font-size:12px;color:var(--muted,#786f80);margin-top:4px}
+#communication .pa19-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+#communication .pa19-kpi{border:1px solid #e6dced;border-radius:13px;background:var(--card,#fff);padding:17px}
+#communication .pa19-kpi b{font-size:29px;display:block;color:#6c438d}
+#communication .pa19-kpi span{font-size:13px;color:var(--muted,#786f80)}
+#communication .pa19-filter{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
+#communication .pa19-filter button.active{background:#efe4f8;border-color:#b27ada}
+#communication .pa19-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+#communication .pa19-day{border:1px solid #e9e0ee;border-radius:9px;padding:8px 5px;min-height:90px;min-width:0}
+#communication .pa19-day small{display:block;text-align:center}
+#communication .pa19-event{font-size:11px;background:#f2eaf8;border-radius:5px;padding:4px;margin-top:5px;overflow-wrap:anywhere}
+#communication .pa19-promo-img{width:56px;height:64px;object-fit:cover;border-radius:7px;background:#efe8f4;flex-shrink:0}
+#communication .pa19-identity{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
+#communication .pa19-resource{border:1px solid #e7dfec;border-radius:11px;padding:10px;min-width:0}
+#communication .pa19-resource img{width:100%;height:100px;object-fit:cover;border-radius:7px}
+#communication .pa19-resource .pa19-placeholder{height:100px;border-radius:7px;background:#f0eaf5;display:grid;place-items:center;font-size:25px}
+#communication .pa19-resource strong{display:block;margin:8px 0;overflow-wrap:anywhere}
+#communication .pa19-archive-controls{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}
+#communication .pa19-archive-controls select{padding:9px;border:1px solid #e0d5e8;border-radius:8px;background:var(--card,#fff);color:inherit}
+#communication .pa19-ideas-input{display:flex;gap:8px;margin-bottom:10px}
+#communication .pa19-ideas-input input{min-width:0;flex:1;padding:9px;border:1px solid #e0d5e8;border-radius:8px}
+@media(max-width:950px){#communication .pa19-actions,#communication .pa19-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#communication .pa19-grid{grid-template-columns:1fr}}
+@media(max-width:530px){#communication .pa19-actions{grid-template-columns:1fr}#communication .pa19-week{overflow-x:auto;grid-template-columns:repeat(7,minmax(90px,1fr))}}
+</style>
+<script id="pa-comm-v19">
+(function(){
+ const root=document.getElementById('communication'),tabs=root?.querySelector('#comm-tabs'),zone=document.getElementById('communication-zone');
+ if(!root||!tabs||!zone)return;
+ const h=esc,preps=()=>Array.isArray(state.communicationPreparations)?state.communicationPreparations:[],
+ groups=()=>Array.isArray(state.groupPromotions)?state.groupPromotions:[],
+ ideas=()=>Array.isArray(state.communicationIdeas)?state.communicationIdeas:[],
+ events=()=>Array.isArray(state.events)?state.events:[],
+ works=()=>Array.isArray(proWorks)?proWorks:[],
+ today=()=>new Date().toLocaleDateString('en-CA'),
+ monthLabel=d=>new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}),
+ workName=id=>works().find(w=>String(w.oeuvre_id)===String(id))?.titre||'Œuvre',
+ period=g=>(g.startDate||g.start||g.date||'')+' → '+(g.endDate||g.end||g.date||'');
+ let current='dashboard',prepFilter='Tous',archiveYear='all',archiveQuarter='all',archiveMonth='all',archiveType='all';
+ const groupEnd=g=>g.endDate||g.end||g.dateEnd||g.date||'';
+ const isArchived=(x,type)=>!!x.archived||(type==='promotion'&&!!groupEnd(x)&&groupEnd(x)<today());
+ const button=(id,label)=>'<button class="btn sm" data-pa19-action="'+id+'">'+label+'</button>';
+ function actionTiles(){return '<div class="pa19-actions">'+[
+ ['routine','🔁','Rendez-vous récurrent','Créer ou modifier un rendez-vous'],
+ ['group','✨','Promotion groupée','Associer plusieurs œuvres'],
+ ['publication','📣','Publication d’autrice','Programmer une publication'],
+ ['prep','📝','Contenu à préparer','Créer une fiche de production']
+ ].map(x=>'<button class="pa19-tile" data-pa19-action="'+x[0]+'"><span>'+x[1]+'</span><strong>'+x[2]+'</strong><small>'+x[3]+'</small></button>').join('')+'</div>'}
+ function groupAction(){const p=document.querySelector('#pv15-group-new');if(p){p.click();return}go('planning');setTimeout(()=>{const b=document.querySelector('#pv15-group-new');if(b)b.click();else alert('Ouvre la vue mensuelle pour créer une promotion groupée.')},0)}
+ function weekItems(){const now=new Date(),day=now.getDay(),start=new Date(now.getFullYear(),now.getMonth(),now.getDate()-(day+6)%7),end=new Date(start);end.setDate(start.getDate()+6);const first=start.toLocaleDateString('en-CA'),last=end.toLocaleDateString('en-CA'),months=[new Date(start.getFullYear(),start.getMonth(),1),new Date(end.getFullYear(),end.getMonth(),1)];return {start,all:[...events(),...months.flatMap(d=>routineEventsForMonth(d))].filter((x,i,a)=>x.date>=first&&x.date<=last&&a.findIndex(y=>y.id===x.id)===i)}}
+ function dashboard(){
+ const routines=commRoutines().filter(x=>!x.archived),activeGroups=groups().filter(x=>!isArchived(x,'promotion')),week=weekItems(),allIdeas=ideas().filter(x=>!x.archived);
+ zone.innerHTML='<h2>Tableau de bord</h2><p>Les opérations et les rendez-vous de ta communication, en un regard.</p>'+actionTiles()+
+ '<div class="pa19-grid"><section class="pa19-panel"><h3>🔁 Mes rendez-vous récurrents</h3>'+(routines.length?routines.map(x=>'<div class="pa19-line"><div><strong>'+h(x.name)+'</strong><div class="pa19-muted">'+h(x.day==='monthend'?'Dernier jour du mois':'Chaque '+(x.dayLabel||'semaine'))+' · '+h((x.platforms||[x.platform].filter(Boolean)).join(', '))+'</div></div>'+button('routine-edit:'+h(x.id),'Modifier')+button('routine-archive:'+h(x.id),'Archiver')+'</div>').join(''):'<p>Aucun rendez-vous récurrent.</p>')+'</section>'+
+ '<section class="pa19-panel"><h3>🗓️ Calendrier de la semaine</h3><div class="pa19-week">'+Array.from({length:7},(_,i)=>{const d=new Date(week.start);d.setDate(d.getDate()+i);const key=d.toLocaleDateString('en-CA');return '<div class="pa19-day"><small>'+['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][i]+' '+d.getDate()+'</small>'+week.all.filter(x=>x.date===key).map(x=>'<div class="pa19-event" title="'+h(x.title)+'">'+h(x.title)+'</div>').join('')+'</div>'}).join('')+'</div></section>'+
+ '<section class="pa19-panel"><h3>✨ Promotions groupées en cours</h3>'+(activeGroups.length?activeGroups.map(g=>'<div class="pa19-line">'+(g.image||g.cover||g.visual?'<img class="pa19-promo-img" src="'+h(g.image||g.cover||g.visual)+'" alt="">':'<div class="pa19-promo-img" style="display:grid;place-items:center">✨</div>')+'<div><strong>'+h(g.title||g.name||'Promotion')+'</strong><div class="pa19-muted">'+h((g.workIds||[]).map(workName).join(' · '))+'</div><div class="pa19-muted">'+h(period(g))+'</div></div>'+button('group-archive:'+h(g.id),'Archiver')+'</div>').join(''):'<p>Aucune promotion groupée en cours.</p>')+'</section>'+
+ '<section class="pa19-panel"><h3>💡 Idées & inspiration</h3><div class="pa19-ideas-input"><input id="pa19-idea" placeholder="Une idée en passant…"><button class="btn primary" data-pa19-action="idea-add">+ Ajouter</button></div>'+(allIdeas.length?allIdeas.slice().reverse().map(x=>'<div class="pa19-line"><div>'+h(x.text)+'</div>'+button('idea-remove:'+h(x.id),'Retirer')+'</div>').join(''):'<p>Un espace pour noter tes idées, sans échéance.</p>')+'</section></div>';
+ }
+ function preparation(){
+ const items=preps().filter(x=>!x.archived).slice().sort((a,b)=>String(a.date||'9999').localeCompare(String(b.date||'9999')));
+ const status=x=>x.status==='À préparer'?'Brouillon':x.status||'Brouillon';
+ const filtered=items.filter(x=>prepFilter==='Tous'||status(x)===prepFilter);
+ const trans=events().filter(x=>x.source==='communication'&&!x.workId&&!x.campaignId);
+ zone.innerHTML='<div class="pa-v17-top"><div><h2>Atelier</h2><p>Prépare et finalise tes contenus avant publication.</p></div><button class="btn primary" data-pa19-action="prep">+ Contenu à préparer</button></div>'+
+ '<div class="pa19-kpis">'+[['📝',items.filter(x=>status(x)!=='Prêt').length,'Contenus à préparer'],['✅',items.filter(x=>status(x)==='Prêt').length,'Contenus prêts'],['🔁',commRoutines().filter(x=>!x.archived).length,'Rendez-vous récurrents'],['✨',groups().filter(x=>!isArchived(x,'promotion')).length,'Promotions groupées']].map(k=>'<div class="pa19-kpi"><span>'+k[0]+'</span><b>'+k[1]+'</b><span>'+k[2]+'</span></div>').join('')+'</div>'+
+ '<section class="pa19-panel"><h3>Contenus en préparation</h3><div class="pa19-filter">'+['Tous','Brouillon','En cours','Prêt'].map(f=>'<button class="btn sm '+(prepFilter===f?'active':'')+'" data-pa19-filter="'+f+'">'+f+' ('+(f==='Tous'?items.length:items.filter(x=>status(x)===f).length)+')</button>').join('')+'</div>'+
+ (filtered.length?filtered.map(x=>'<div class="pa19-line"><div><strong>'+h(x.title)+'</strong><div class="pa19-muted"><span class="pill">'+h(x.type||'Publication')+'</span> <span class="pill">'+h(status(x))+'</span> '+h(x.platform||'')+' '+h(x.date||'Sans échéance')+'</div></div>'+button('prep-edit:'+h(x.id),'Modifier')+button('prep-archive:'+h(x.id),'Archiver')+'</div>').join(''):'<p>Aucun contenu dans ce filtre.</p>')+'</section>'+
+ '<section class="pa19-panel" style="margin-top:15px"><h3>Publications d’autrice programmées · '+trans.length+'</h3>'+(trans.length?trans.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(x=>'<div class="pa19-line"><div><strong>'+h(x.title)+'</strong><div class="pa19-muted">'+h(x.date)+' · '+h(x.channel||'')+' · '+h(x.status||'À venir')+'</div></div></div>').join(''):'<p>Aucune publication transversale programmée.</p>')+'</section>';
+ }
+ function references(){
+ const all=marketingResources(),identity=all.filter(x=>x.type==='identity'),hashtags=all.filter(x=>x.type==='hashtag'),links=all.filter(x=>x.type==='link');
+ zone.innerHTML='<h2>Références</h2><p>Identité de communication, hashtags, modèles et liens utiles.</p><div class="pa19-kpis">'+[['🎨',identity.length,'Identité'],['#',hashtags.length,'Ensembles de hashtags'],['🔗',links.length,'Liens & ressources']].map(k=>'<div class="pa19-kpi"><span>'+k[0]+'</span><b>'+k[1]+'</b><span>'+k[2]+'</span></div>').join('')+'</div>'+
+ '<section class="pa19-panel"><div class="pa-v17-top"><h3>🎨 Identité de communication</h3>'+button('resource:identity','+ Ajouter')+'</div><div class="pa19-identity">'+(identity.length?identity.map(x=>'<div class="pa19-resource">'+(x.image||x.imageUrl||x.thumbnail?'<img src="'+h(x.image||x.imageUrl||x.thumbnail)+'" alt="">':'<div class="pa19-placeholder">🎨</div>')+'<strong>'+h(x.title||x.name||'Ressource')+'</strong>'+button('resource-edit:'+h(x.id),'Ouvrir / modifier')+'</div>').join(''):'<p>Ajoute tes visuels, modèles et textes de référence.</p>')+'</div></section>'+
+ '<section class="pa19-panel" style="margin-top:15px"><div class="pa-v17-top"><h3># Bibliothèque de hashtags</h3>'+button('resource:hashtag','+ Ajouter')+'</div>'+(hashtags.length?hashtags.map(x=>'<div class="pa19-line"><div><strong>'+h(x.title||x.name||'Hashtags')+'</strong><div class="pa19-muted">'+h(x.content||x.notes||'')+'</div></div>'+button('hashtag-copy:'+h(x.id),'Copier')+button('resource-edit:'+h(x.id),'Modifier')+'</div>').join(''):'<p>Aucun ensemble de hashtags.</p>')+'</section>'+
+ '<section class="pa19-panel" style="margin-top:15px"><div class="pa-v17-top"><h3>🔗 Liens & ressources</h3>'+button('resource:link','+ Ajouter')+'</div>'+(links.length?links.map(x=>'<div class="pa19-line"><div><strong>'+h(x.title||x.name||'Ressource')+'</strong><div class="pa19-muted">'+h(x.description||x.notes||'')+'</div></div>'+(x.url?'<a class="btn sm" target="_blank" rel="noopener" href="'+h(x.url)+'">Ouvrir ↗</a>':'')+button('resource-edit:'+h(x.id),'Modifier')+'</div>').join(''):'<p>Aucun lien enregistré.</p>')+'</section>';
+ }
+ function archives(){
+ const rows=[...groups().filter(x=>isArchived(x,'promotion')).map(x=>({...x,kind:'Promotion',when:groupEnd(x)})),...commRoutines().filter(x=>x.archived).map(x=>({...x,kind:'Rendez-vous',when:x.archivedAt||''})),...preps().filter(x=>x.archived).map(x=>({...x,kind:'Contenu',when:x.archivedAt||x.date||''})),...(state.campaigns||[]).filter(x=>x.archived).map(x=>({...x,kind:'Campagne',when:x.archivedAt||x.endDate||''}))];
+ const years=[...new Set(rows.map(x=>String(x.when).slice(0,4)).filter(x=>/^\d{4}$/.test(x)))].sort().reverse();
+ const options=(vals,selected)=>vals.map(([v,l])=>'<option value="'+h(v)+'" '+(selected===v?'selected':'')+'>'+h(l)+'</option>').join('');
+ const shown=rows.filter(x=>{const d=String(x.when||''),m=Number(d.slice(5,7)),q=Math.ceil(m/3);return (archiveType==='all'||archiveType===x.kind)&&(archiveYear==='all'||d.startsWith(archiveYear))&&(archiveQuarter==='all'||String(q)===archiveQuarter)&&(archiveMonth==='all'||String(m)===archiveMonth)});
+ zone.innerHTML='<h2>Archives</h2><p>Les opérations terminées restent consultables sans encombrer le travail en cours.</p><div class="pa19-archive-controls"><select data-pa19-archive="type">'+options([['all','Tous les types'],['Promotion','Promotions'],['Rendez-vous','Rendez-vous'],['Campagne','Campagnes'],['Contenu','Contenus']],archiveType)+'</select><select data-pa19-archive="year">'+options([['all','Toutes les années'],...years.map(y=>[y,y])],archiveYear)+'</select><select data-pa19-archive="quarter">'+options([['all','Tous les trimestres'],['1','T1'],['2','T2'],['3','T3'],['4','T4']],archiveQuarter)+'</select><select data-pa19-archive="month">'+options([['all','Tous les mois'],...Array.from({length:12},(_,i)=>[String(i+1),new Date(2026,i,1).toLocaleDateString('fr-FR',{month:'long'})])],archiveMonth)+'</select></div><section class="pa19-panel">'+(shown.length?shown.map(x=>'<div class="pa19-line"><div><strong>'+h(x.title||x.name||'Élément')+'</strong><div class="pa19-muted">'+h(x.kind)+' · '+h(x.when||'Sans date')+'</div></div>'+button('restore:'+h(x.kind)+':'+h(x.id),'Restaurer')+'</div>').join(''):'<p>Aucune archive pour ces filtres.</p>')+'</section>';
+ }
+ function render(tab='dashboard'){current=tab;tabs.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.ctab===tab));if(tab==='dashboard')dashboard();else if(tab==='workshop')preparation();else if(tab==='references')references();else archives();}
+ tabs.innerHTML='<button data-ctab="dashboard">Tableau de bord</button><button data-ctab="workshop">Atelier</button><button data-ctab="references">Références</button><button data-ctab="archives">Archives</button>';
+ tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>render(b.dataset.ctab));
+ zone.addEventListener('click',e=>{
+ const filter=e.target.closest('[data-pa19-filter]');if(filter){prepFilter=filter.dataset.pa19Filter;render('workshop');return}
+ const a=e.target.closest('[data-pa19-action]');if(!a)return;const action=a.dataset.pa19Action,[cmd,id,extra]=action.split(':');
+ if(cmd==='routine')openRoutine();
+ else if(cmd==='routine-edit')openRoutine(id);
+ else if(cmd==='group')groupAction();
+ else if(cmd==='publication')openCommEvent();
+ else if(cmd==='prep'){render('workshop');document.getElementById('pa-v17-new')?.click();if(!document.getElementById('pa-v17-new'))document.querySelector('#pa-v17-modal')?.classList.add('open')}
+ else if(cmd==='prep-edit'){const x=preps().find(v=>String(v.id)===id);if(x){document.querySelector('#pa-v17-modal')?.classList.add('open');for(const k of ['title','date','platform','type','status','notes']){const el=document.getElementById('pa-v17-'+k);if(el)el.value=x[k]||''} /* original edit handler is retained in legacy view */}}
+ else if(cmd==='idea-add'){const input=document.getElementById('pa19-idea');if(input?.value.trim()){state.communicationIdeas=ideas().concat({id:'IDEA-'+Date.now(),text:input.value.trim(),createdAt:new Date().toISOString()});persist();render()}}
+ else if(cmd==='idea-remove'){if(confirm('Retirer cette idée ?')){state.communicationIdeas=ideas().filter(x=>String(x.id)!==id);persist();render()}}
+ else if(cmd==='resource')openResource(null,id);
+ else if(cmd==='resource-edit')openResource(id);
+ else if(cmd==='hashtag-copy'){const x=marketingResources().find(v=>String(v.id)===id);if(x)navigator.clipboard?.writeText(x.content||x.notes||'')}
+ else if(cmd==='routine-archive'||cmd==='prep-archive'||cmd==='group-archive'){if(!confirm('Archiver cet élément ?'))return;const arr=cmd==='routine-archive'?commRoutines():cmd==='prep-archive'?preps():groups();const x=arr.find(v=>String(v.id)===id);if(x){x.archived=true;x.archivedAt=today();persist();render()}}
+ else if(cmd==='restore'){const arr=id==='Promotion'?groups():id==='Rendez-vous'?commRoutines():id==='Campagne'?(state.campaigns||[]):preps();const x=arr.find(v=>String(v.id)===extra);if(x){if(id==='Promotion'&&groupEnd(x)<today()){alert('Prolonge d’abord la date de fin de cette promotion pour la réactiver.');return}x.archived=false;persist();render()}}
+ });
+ zone.addEventListener('change',e=>{const a=e.target.closest('[data-pa19-archive]');if(!a)return;const v=a.value;if(a.dataset.pa19Archive==='type')archiveType=v;if(a.dataset.pa19Archive==='year')archiveYear=v;if(a.dataset.pa19Archive==='quarter')archiveQuarter=v;if(a.dataset.pa19Archive==='month')archiveMonth=v;render('archives')});
+ const oldGo=go;go=function(id){const res=oldGo(id);if(id==='communication')render('dashboard');return res};
+ const oldRender=renderCommunication;renderCommunication=function(tab){if(root.classList.contains('active'))render(current);else oldRender(tab)};
+ render('dashboard');
+})();
+</script>
+
 </body></html>
