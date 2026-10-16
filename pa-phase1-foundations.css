@@ -1,0 +1,10 @@
+/* Phase 1 : ajout minimal au corps de la fiche, sans changer la navigation générale. */
+.pa-life1 .pa-life-list{display:grid;gap:9px;margin:14px 0}
+.pa-life1 .pa-life-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #e7ddef;border-radius:13px;background:#fff;flex-wrap:wrap}
+.pa-life1 .pa-life-row>div{flex:1;min-width:180px}
+.pa-life1 .pa-life-row small{display:block;color:#796c84;margin-top:3px}
+.pa-life1 .pa-life-icon{font-size:18px}
+.pa-life-archives{margin-top:16px}
+.pa-life-archives details{border:1px solid #e7ddef;border-radius:12px;padding:12px;margin:9px 0}
+.pa-life-archives summary{cursor:pointer}
+.pa-life-archive-detail{padding:12px;background:#faf7fd;border-radius:9px;margin-top:10px}
