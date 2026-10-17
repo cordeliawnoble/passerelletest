@@ -6061,7 +6061,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     const sagas=[...new Map((data||[]).filter(x=>x.sagas?.nom).map(x=>[x.saga_id,x.sagas.nom])).entries()];
     const sel=document.getElementById('sscat-saga-v570');
     if(sel)sel.innerHTML='<option value="">Saga · Toutes</option>'+sagas.map(([id,nom])=>`<option value="${id}">${safeText(nom)}</option>`).join('');
-    zone.innerHTML=`<div class="entity-gallery" id="sscat-grid-v570">${(data||[]).map(x=>`<div data-search="${safeText((x.nom+' '+(x.genre||'')+' '+(x.sagas?.nom||'')).toLowerCase())}" data-saga="${safeText(x.saga_id||'')}">${entityGalleryCard({title:x.nom,image:x.banniere||x.image_url,pageColor:x._resolved_page_color,tags:[x.trame_principale?'👑 Trame principale':null,x.sagas?.nom,x.genre,x.statut,x.archive?'Archivée':null],top:'Sous-saga',onclick:`openSousSagaDetail('${x.id}')`})}</div>`).join('')||'<div class="empty">Aucune sous-saga.</div>'}</div>`;
+    zone.innerHTML=`<div class="entity-gallery" id="sscat-grid-v570">${(data||[]).map(x=>`<div data-search="${safeText((x.nom+' '+(x.genre||'')+' '+(x.sagas?.nom||'')).toLowerCase())}" data-saga="${safeText(x.saga_id||'')}">${entityGalleryCard({title:x.nom,image:x.image_url||x.banniere,pageColor:x._resolved_page_color,tags:[x.trame_principale?'👑 Trame principale':null,x.sagas?.nom,x.genre,x.statut,x.archive?'Archivée':null],top:'Sous-saga',onclick:`openSousSagaDetail('${x.id}')`})}</div>`).join('')||'<div class="empty">Aucune sous-saga.</div>'}</div>`;
   }
   function resetSsFiltersV576c14(){const q=document.getElementById('sscat-search-v570'),s=document.getElementById('sscat-saga-v570');if(q)q.value='';if(s)s.value='';filterSsCatalogueV570();}
   function filterSsCatalogueV570(){
@@ -7059,17 +7059,25 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
             </div>
             <div><label>Description</label><textarea id="ssf-description"></textarea></div>
             <div><label>Bannière de la fiche</label><input id="ssf-banniere" placeholder="https://…"><div id="ssf-banner-upload" style="margin-top:6px;display:none"><label class="btn-secondary upload-file-btn">⇧ Téléverser<input type="file" accept="image/*" id="ssf-banner-file"></label></div></div>
+            <div><label>🖼️ Vignette des cartes</label><input id="ssf-vignette" placeholder="URL de vignette (facultatif)" oninput="previewSsVignette()"><div style="display:flex;align-items:center;gap:12px;margin-top:8px"><img id="ssf-vignette-preview" style="width:110px;height:75px;object-fit:cover;border-radius:10px;display:none"><label class="btn-secondary upload-file-btn">⇧ Choisir une image<input type="file" accept="image/png,image/jpeg,image/webp,image/avif" id="ssf-vignette-file" onchange="previewSsVignette()"></label><button type="button" class="tiny-btn" onclick="clearSsVignette()">Retirer</button></div><small>Convertie en WebP à l'enregistrement. Indépendante de la bannière.</small></div>
           </div>
           <div class="modal-foot"><button class="btn-secondary" onclick="closeSousSagaModal()">Annuler</button><button class="btn-primary" onclick="saveSousSaga()">Enregistrer</button></div>
         </div>
       </div>`;
   }
+  let ssPreviewObjectUrl=null;
+  function previewSsVignette(){
+    const file=document.getElementById('ssf-vignette-file')?.files?.[0],url=document.getElementById('ssf-vignette')?.value.trim(),img=document.getElementById('ssf-vignette-preview');if(!img)return;
+    if(ssPreviewObjectUrl){URL.revokeObjectURL(ssPreviewObjectUrl);ssPreviewObjectUrl=null}
+    const src=file?(ssPreviewObjectUrl=URL.createObjectURL(file)):url;img.style.display=src?'block':'none';if(src)img.src=src;else img.removeAttribute('src');
+  }
+  function clearSsVignette(){document.getElementById('ssf-vignette-file').value='';document.getElementById('ssf-vignette').value='';previewSsVignette()}
   let editingSousSagaId = null;
   async function openSousSagaModal(id){
     editingSousSagaId = id || null;
     document.getElementById('modal-soussaga-title').textContent = id ? 'Modifier la sous-saga' : 'Nouvelle sous-saga';
     document.getElementById('ssf-nom').value=''; document.getElementById('ssf-format').value='';
-    document.getElementById('ssf-statut').value='En cours'; document.getElementById('ssf-description').value=''; document.getElementById('ssf-banniere').value='';
+    document.getElementById('ssf-statut').value='En cours'; document.getElementById('ssf-description').value=''; document.getElementById('ssf-banniere').value=''; document.getElementById('ssf-vignette').value=''; document.getElementById('ssf-vignette-file').value='';previewSsVignette();
     document.getElementById('ssf-banner-upload').style.display='none';
     const sagaSelect=document.getElementById('ssf-saga');
     const {data:sagas,error:sagaErr}=await db().from('sagas').select('id,nom').eq('archive',false).order('nom');
@@ -7078,7 +7086,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     if (id) {
       document.getElementById('ssf-banner-upload').style.display='block'; document.getElementById('ssf-banner-file').onchange=(e)=>uploadEntityBanner('sous_sagas',id,e.target,'ssf-banniere');
       const { data } = await db().from('sous_sagas').select('nom, format, statut, description, banniere, image_url, saga_id').eq('id', id).single();
-      if (data) { document.getElementById('ssf-nom').value=data.nom||''; document.getElementById('ssf-format').value=data.format||''; document.getElementById('ssf-statut').value=data.statut||'En cours'; document.getElementById('ssf-description').value=data.description||''; document.getElementById('ssf-banniere').value=data.banniere||data.image_url||''; sagaSelect.value=data.saga_id||''; }
+      if (data) { document.getElementById('ssf-nom').value=data.nom||''; document.getElementById('ssf-format').value=data.format||''; document.getElementById('ssf-statut').value=data.statut||'En cours'; document.getElementById('ssf-description').value=data.description||''; document.getElementById('ssf-banniere').value=data.banniere||'';document.getElementById('ssf-vignette').value=data.image_url||'';previewSsVignette(); sagaSelect.value=data.saga_id||''; }
     } else if (currentSagaId) {
       sagaSelect.value=currentSagaId;
     }
@@ -7090,7 +7098,9 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     const help=document.getElementById('ssf-saga-help');
     if(!sagaId){ help.textContent='Choisis d’abord la saga parente.'; help.style.color='#b42318'; return; }
     help.textContent='Une sous-saga doit obligatoirement appartenir à une saga.'; help.style.color='var(--text-dim)';
-    const payload = { nom: document.getElementById('ssf-nom').value.trim()||'Sans titre', saga_id:sagaId, format: document.getElementById('ssf-format').value.trim(), statut: document.getElementById('ssf-statut').value, description: document.getElementById('ssf-description').value.trim(), banniere:document.getElementById('ssf-banniere').value.trim()||null };
+    const payload = { nom: document.getElementById('ssf-nom').value.trim()||'Sans titre', saga_id:sagaId, format: document.getElementById('ssf-format').value.trim(), statut: document.getElementById('ssf-statut').value, description: document.getElementById('ssf-description').value.trim(), banniere:document.getElementById('ssf-banniere').value.trim()||null, image_url:document.getElementById('ssf-vignette').value.trim()||null };
+    const vignetteFile=document.getElementById('ssf-vignette-file')?.files?.[0];
+    if(vignetteFile){try{payload.image_url=await uploadAssetFile(vignetteFile,'vignettes/sous-sagas',{profile:{maxW:1200,maxH:800,quality:.84,label:'Vignette'},requireOptimize:true,throwOnError:true});if(!payload.image_url)throw Error('URL absente')}catch(e){help.textContent='Erreur vignette : '+e.message;help.style.color='#b42318';return}}
     let error, newId;
     if (editingSousSagaId) ({ error } = await db().from('sous_sagas').update(payload).eq('id', editingSousSagaId));
     else { payload.user_id = currentUser.id; const res = await db().from('sous_sagas').insert(payload).select('id').single(); error = res.error; newId = res.data?.id; }
