@@ -7059,7 +7059,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
             </div>
             <div><label>Description</label><textarea id="ssf-description"></textarea></div>
             <div><label>Bannière de la fiche</label><input id="ssf-banniere" placeholder="https://…"><div id="ssf-banner-upload" style="margin-top:6px;display:none"><label class="btn-secondary upload-file-btn">⇧ Téléverser<input type="file" accept="image/*" id="ssf-banner-file"></label></div></div>
-            <div><label>🖼️ Vignette des cartes</label><input id="ssf-vignette" placeholder="URL facultative" oninput="previewSousSagaVignetteLiam()"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px"><img id="ssf-vignette-preview" alt="Aperçu" style="width:110px;height:80px;object-fit:cover;border-radius:10px;display:none"><label class="btn-secondary upload-file-btn">⇧ Téléverser une vignette<input id="ssf-vignette-file" type="file" accept="image/png,image/jpeg,image/webp,image/avif" onchange="previewSousSagaVignetteLiam()"></label><button type="button" class="tiny-btn" onclick="clearSousSagaVignetteLiam()">Retirer</button></div><small>Convertie en WebP lors de l'enregistrement. Distincte de la bannière.</small></div>
+            <div><label>🖼️ Vignette / couverture de sous-saga</label><small style="display:block;margin:4px 0 8px;color:var(--text-dim)">Accessible ici : Catalogue → Saga → Sous-sagas → Modifier. Pas dans la médiathèque Personnages.</small><input id="ssf-vignette" placeholder="URL facultative" oninput="previewSousSagaVignetteLiam()"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px"><img id="ssf-vignette-preview" alt="Aperçu" style="width:110px;height:80px;object-fit:cover;border-radius:10px;display:none"><label class="btn-secondary upload-file-btn">⇧ Téléverser une vignette<input id="ssf-vignette-file" type="file" accept="image/png,image/jpeg,image/webp,image/avif" onchange="previewSousSagaVignetteLiam()"></label><button type="button" class="tiny-btn" onclick="clearSousSagaVignetteLiam()">Retirer</button></div><small>Convertie en WebP lors de l'enregistrement. Distincte de la bannière.</small></div>
           </div>
           <div class="modal-foot"><button class="btn-secondary" onclick="closeSousSagaModal()">Annuler</button><button class="btn-primary" onclick="saveSousSaga()">Enregistrer</button></div>
         </div>
@@ -10057,6 +10057,45 @@ async function restoreArchiveC112(id,btn){const a=notionArchivesC112.find(x=>x.i
 .liam-rel-form label{font-size:12px;font-weight:600}
 .liam-rel-form textarea{min-height:80px}
 @media(max-width:680px){.liam-rel-form{grid-template-columns:1fr}}
+/* Correctif Liam : en-têtes personnages réellement compacts, sans bannière */
+.character-detail .character-hero.liam-character-hero{
+  min-height:0!important;height:auto!important;background:var(--surface,#fff)!important;
+  border:1px solid var(--line,#ddd)!important;border-radius:14px!important;
+  color:var(--text,#292435)!important;box-shadow:none!important;
+}
+.character-detail .liam-character-hero .character-hero-content{
+  min-height:0!important;height:auto!important;padding:16px 20px!important;
+  display:flex!important;flex-direction:row!important;align-items:center!important;
+  justify-content:space-between!important;gap:16px!important;
+  color:var(--text,#292435)!important;
+}
+.character-detail .liam-character-hero .character-hero-copy{max-width:none!important;min-width:0!important;flex:1!important}
+.character-detail .liam-character-hero .character-hero-name{
+  font-size:clamp(22px,2.5vw,31px)!important;line-height:1.2!important;
+  text-shadow:none!important;color:var(--text,#292435)!important;margin:2px 0 6px!important;
+}
+.character-detail .liam-character-hero .character-hero-copy>div:first-child{color:var(--text-dim,#655b70)!important;opacity:1!important}
+.character-detail .liam-character-hero .character-hero-quote{display:none!important}
+.character-detail .liam-character-hero .character-hero-tags{gap:5px!important}
+.character-detail .liam-character-hero .character-hero-tags span{
+  padding:3px 9px!important;background:var(--char-soft,#eee8f2)!important;
+  border:1px solid var(--line,#ddd)!important;color:var(--text,#292435)!important;font-size:11px!important;
+}
+.character-detail .liam-character-hero .character-hero-side{
+  align-self:center!important;display:flex!important;flex-direction:column!important;
+  align-items:flex-end!important;justify-content:center!important;gap:7px!important;flex-shrink:0!important;
+}
+.character-detail .liam-character-hero .character-hero-id{font-size:10px!important;color:var(--text-dim,#655b70)!important;opacity:1!important}
+.character-detail .liam-character-hero .liam-character-actions button{
+  background:var(--surface,#fff)!important;color:var(--text,#292435)!important;
+  border:1px solid var(--line,#ddd)!important;min-width:31px!important;height:31px!important;
+}
+.character-detail .liam-character-hero .liam-character-actions button:hover{background:var(--char-soft,#eee8f2)!important}
+.character-detail .character-tabs,.character-detail .character-tabs button{color:var(--text,#292435)!important}
+@media(max-width:700px){
+  .character-detail .liam-character-hero .character-hero-content{flex-wrap:wrap!important;padding:14px!important}
+  .character-detail .liam-character-hero .character-hero-side{width:100%!important;flex-direction:row!important;justify-content:space-between!important;align-items:center!important}
+}
 </style>
 <script>
 /* Liam · personnages et relations · extension sans migration de schéma */
