@@ -1694,7 +1694,16 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
 .liam-ss-vignette-row{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
 .liam-ss-vignette-row img{width:220px;max-width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:12px;border:1px solid var(--line)}
 .liam-ss-vignette-controls{flex:1;min-width:230px;display:grid;gap:9px}.liam-ss-vignette-controls small{color:var(--text-dim)}
-</style></head>
+</style><style id="liam-banner-fix-20261020">
+.liam-banner-shell{position:relative;width:100%;min-height:180px;max-height:400px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:16px;background:var(--bg-2,#19151f);isolation:isolate}
+.liam-banner-shell:before{content:"";position:absolute;inset:-24px;background-image:var(--liam-banner-url);background-position:center;background-size:cover;filter:blur(23px);opacity:.36;z-index:-1}
+.liam-banner-shell>.catalog-entity-banner{display:block!important;position:relative!important;width:100%!important;height:auto!important;max-height:400px!important;object-fit:contain!important;object-position:center center!important;margin:0 auto!important;border:0!important;border-radius:0!important;transform:none!important}
+.liam-banner-shell:after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 34px 12px var(--bg,#18151b);opacity:.35}
+.liam-ss-state{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line)}
+.liam-ss-state select,.liam-ss-state textarea{font:inherit;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px;min-width:120px}
+.liam-ss-state textarea{flex:1;min-width:180px;min-height:48px}
+</style>
+</head>
 <body>
 
 <div id="app"><div class="status-line">Chargement…</div></div>
@@ -2377,7 +2386,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
 
   function renderCatalogEntityBanner(url,title=''){
     if(!url) return `<div class="catalog-entity-banner empty"><span>${safeText(title)}</span></div>`;
-    return `<img class="catalog-entity-banner" src="${safeText(url)}" alt="Bannière ${safeText(title)}">`;
+    return `<div class="liam-banner-shell" style="--liam-banner-url:url('${safeText(url)}')"><img class="catalog-entity-banner" src="${safeText(url)}" alt="Bannière ${safeText(title)}"></div>`;
   }
 
   async function loadSidebarQuickLinks(){
@@ -5414,7 +5423,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   }
   let sagaSousSagasC38c=[],sagaSousMetaC38c=null;
   async function renderSagaSousSagasV56(zone){
-    const [r,meta]=await Promise.all([db().from('sous_sagas').select('*').eq('saga_id',currentSagaId).order('trame_principale',{ascending:false}).order('ordre'),sagaMetadataBundle()]);
+    const [r,meta]=await Promise.all([db().from('sous_sagas').select('*').eq('saga_id',currentSagaId).eq('archive',false).order('trame_principale',{ascending:false}).order('ordre'),sagaMetadataBundle()]);
     sagaSousSagasC38c=r.data||[];sagaSousMetaC38c=meta;
     const opts=meta.defs.map(d=>`<option value="${d.id}">${safeText((d.emoji?d.emoji+' ':'')+d.nom)}</option>`).join('');
     zone.innerHTML=`<div class="head-row"><div><h2>Sous-sagas</h2></div><button class="btn-primary" onclick="openSousSagaModal()">+ Créer une sous-saga</button></div><div class="compact-filterbar-v576c14"><input class="filter-search" id="saga-ss-q" placeholder="🔍 Rechercher une sous-saga…" oninput="renderSagaSousSagasGridC38c()"><select id="saga-ss-meta" onchange="renderSagaSousSagasGridC38c()"><option value="">Métadonnées · Toutes</option>${opts}</select>${workViewSwitchC38('renderSagaSousSagasGridC38c')}</div><div id="saga-ss-grid"></div>`;
@@ -6168,7 +6177,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
 
   async function renderSagaSousSagas(zone){
     zone.innerHTML = `<div class="head-row"><div></div><button class="btn-primary" onclick="openSousSagaModal()">+ Créer une sous-saga</button></div><div id="sous-sagas-zone"><div class="status-line">Chargement…</div></div>`;
-    const { data, error } = await db().from('sous_sagas').select('id, nom, format, statut').eq('saga_id', currentSagaId).order('ordre');
+    const { data, error } = await db().from('sous_sagas').select('id, nom, format, statut').eq('saga_id', currentSagaId).eq('archive',false).order('ordre');
     const inner = document.getElementById('sous-sagas-zone');
     if (error) { inner.innerHTML = `<div class="empty">Erreur : ${error.message}</div>`; return; }
     if (!data.length) { inner.innerHTML = `<div class="empty">Aucune sous-saga pour l'instant.</div>`; return; }
@@ -6498,29 +6507,41 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
 
   async function renderSousSagaPersonnages(zone){
     zone.innerHTML='<div class="status-line">Chargement…</div>';
-    const wr=await db().from('oeuvres').select('id,titre,numero_sous_saga,ordre_sous_saga').eq('sous_saga_id',currentSousSagaId).eq('archive',false).order('ordre_sous_saga',{ascending:true,nullsFirst:false}); const works=wr.data||[]; const ids=works.map(x=>x.id);
-    if(!ids.length){zone.innerHTML='<div class="empty">Aucune œuvre dans cette sous-saga.</div>';return}
-    const {data,error}=await db().from('personnages_oeuvres').select('personnage_id,oeuvre_id,role,importance,etat,personnages(id,nom,favori)').in('oeuvre_id',ids);if(error){zone.innerHTML=`<div class="empty">Erreur : ${safeText(error.message)}</div>`;return}
+    const wr=await db().from('oeuvres').select('id,titre,numero_sous_saga,ordre_sous_saga').eq('sous_saga_id',currentSousSagaId).eq('archive',false).order('ordre_sous_saga',{ascending:true,nullsFirst:false});
+    if(wr.error){zone.textContent=wr.error.message;return}
+    const works=(wr.data||[]).sort((a,b)=>Number(a.ordre_sous_saga??a.numero_sous_saga??999)-Number(b.ordre_sous_saga??b.numero_sous_saga??999));
+    if(!works.length){zone.innerHTML='<div class="empty">Aucune œuvre dans cette sous-saga.</div>';return}
+    const {data,error}=await db().from('personnages_oeuvres').select('personnage_id,oeuvre_id,role,importance,etat,notes_contexte,personnages(id,nom,favori)').in('oeuvre_id',works.map(x=>x.id));
+    if(error){zone.innerHTML=`<div class="empty">Erreur : ${safeText(error.message)}</div>`;return}
     const map={};(data||[]).forEach(r=>{const k=r.personnage_id;if(!map[k])map[k]={p:r.personnages,rels:{},role:r.role,importance:r.importance};map[k].rels[r.oeuvre_id]=r});
-    zone.innerHTML=`<div class="head-row"><h2>Évolution des personnages</h2></div><div class="gallery">${Object.values(map).map(x=>`<article class="char-card"><div class="char-portrait">${initials(x.p?.nom)}</div><div class="char-name">${safeText(x.p?.nom||'—')}</div><div class="char-role">${safeText(x.role||x.importance||'—')}</div><div class="ss-tome-status">${works.map(w=>{const r=x.rels[w.id];return `<span><strong>T${w.numero_sous_saga??'?'}</strong> · ${r?safeText(r.etat||r.role||'Présent'):'Non renseigné'}</span>`}).join('')}</div></article>`).join('')}</div>`;
+    const statuses=['Présent','Absent','Disparu','Décédé','Inconnu'];
+    zone.innerHTML=`<div class="head-row"><h2>Évolution des personnages</h2></div><div class="gallery">${Object.values(map).map(x=>`<article class="char-card"><div class="char-portrait">${initials(x.p?.nom)}</div><div class="char-name">${safeText(x.p?.nom||'—')}</div><div class="char-role">${safeText(x.role||x.importance||'—')}</div><div class="ss-tome-status">${works.filter(w=>x.rels[w.id]).map(w=>{const r=x.rels[w.id];const status=r.etat||'Présent';return `<div class="liam-ss-state"><strong>${safeText(w.numero_sous_saga!=null?'T'+w.numero_sous_saga:w.titre)}</strong><select aria-label="État du personnage" onchange="saveSsCharacterStateLiam('${r.personnage_id}','${r.oeuvre_id}','etat',this.value)">${[...new Set([...statuses,status])].map(v=>`<option value="${safeText(v)}" ${v===status?'selected':''}>${safeText(v)}</option>`).join('')}</select><textarea aria-label="Évolution du personnage" placeholder="Évolution dans ce tome…" onblur="saveSsCharacterStateLiam('${r.personnage_id}','${r.oeuvre_id}','notes_contexte',this.value)">${safeText(r.notes_contexte||'')}</textarea></div>`}).join('')}</div></article>`).join('')}</div>`;
+  }
+  async function saveSsCharacterStateLiam(personnageId,oeuvreId,field,value){
+    if(!['etat','notes_contexte'].includes(field))return;
+    const {error}=await db().from('personnages_oeuvres').update({[field]:value}).eq('personnage_id',personnageId).eq('oeuvre_id',oeuvreId);
+    if(error){alert('Enregistrement impossible : '+error.message);console.error(error)}
   }
 
   async function renderSousSagaPlanGlobal(zone){
     zone.innerHTML='<div class="status-line">Chargement du plan global…</div>';
     try{
-      const [ssR,segR,arcsR]=await Promise.all([
+      const [ssR,segR,arcsR,worksR]=await Promise.all([
         db().from('sous_sagas').select('plan_resume_court,plan_fil_rouge,plan_continuite').eq('id',currentSousSagaId).single(),
         db().from('sous_saga_segments').select('*,oeuvres(titre)').eq('sous_saga_id',currentSousSagaId).order('ordre'),
-        db().from('sous_saga_arcs_transversaux').select('*').eq('sous_saga_id',currentSousSagaId).order('ordre')
+        db().from('sous_saga_arcs_transversaux').select('*').eq('sous_saga_id',currentSousSagaId).order('ordre'),
+        db().from('oeuvres').select('id,titre,numero_sous_saga,ordre_sous_saga').eq('sous_saga_id',currentSousSagaId).eq('archive',false)
       ]);
-      const firstError=[ssR,segR,arcsR].find(r=>r?.error)?.error;
+      const firstError=[ssR,segR,arcsR,worksR].find(r=>r?.error)?.error;
       if(firstError) throw firstError;
 
       const ss=ssR.data||{}, segments=segR.data||[], arcs=arcsR.data||[];
+      const tomeWorks=(worksR.data||[]).sort((a,b)=>Number(a.ordre_sous_saga??a.numero_sous_saga??999)-Number(b.ordre_sous_saga??b.numero_sous_saga??999));
+      segments.forEach((seg,i)=>{const w=tomeWorks.find(w=>w.id===seg.oeuvre_id)||tomeWorks[i];if(w){seg._liamTitle='T'+(w.numero_sous_saga??(i+1))+' · '+w.titre;seg._liamWork=w}});
       const overview=segments.length?`<div style="overflow:auto"><table class="plan-global-table">
         <thead><tr><th>Nom</th><th>État</th><th>Protagonistes</th><th>Intrigue</th><th>Apport au fil rouge</th><th>Situation à la fin</th><th>Statut</th></tr></thead>
         <tbody>${segments.map(s=>`<tr>
-          <td><strong>${safeText(s.libelle||('Tome '+(s.numero||'')))}</strong>${s.oeuvres?.titre?`<br><small>${safeText(s.oeuvres.titre)}</small>`:''}</td>
+          <td><strong>${safeText(s._liamTitle||s.libelle||('Tome '+(s.numero||'')))}</strong>${s.oeuvres?.titre?`<br><small>${safeText(s.oeuvres.titre)}</small>`:''}</td>
           <td>${safeText(s.etat||'—')}</td>
           <td>${renderSimpleRichText(s.protagonistes||'—')}</td>
           <td>${renderSimpleRichText(s.intrigue||'—')}</td>
@@ -6557,7 +6578,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
 
   function renderSsSegment(seg){
     const fields=[['identite','Identité du tome'],['resume_complet','Résumé complet'],['arc_protagonistes','Arc des protagonistes'],['arc_relationnel','Arc relationnel'],['evenements_importants','Événements importants'],['continuite','Continuité']];
-    return `<details class="ss-segment"><summary>💙 ${safeText(seg.libelle||('Tome '+(seg.numero||'')))} ${seg.oeuvres?.titre?'· '+safeText(seg.oeuvres.titre):''}</summary><div class="ss-segment-body">${fields.map(([k,l])=>`<details><summary>▸ ${l}</summary><div class="ss-rich" contenteditable="true" onblur="saveSsSegmentField('${seg.id}','${k}',this.innerHTML)">${seg[k]||''}</div></details>`).join('')}<button class="btn-secondary" onclick="deleteSsSegment('${seg.id}')">Supprimer ce segment</button></div></details>`;
+    return `<details class="ss-segment"><summary>💙 ${safeText(seg._liamTitle||seg.libelle||('Tome '+(seg.numero||'')))} ${seg.oeuvres?.titre?'· '+safeText(seg.oeuvres.titre):''}</summary><div class="ss-segment-body">${fields.map(([k,l])=>`<details><summary>▸ ${l}</summary><div class="ss-rich" contenteditable="true" onblur="saveSsSegmentField('${seg.id}','${k}',this.innerHTML)">${seg[k]||''}</div></details>`).join('')}<button class="btn-secondary" onclick="deleteSsSegment('${seg.id}')">Supprimer ce segment</button></div></details>`;
   }
   async function addSousSagaSegment(){const r=await db().from('sous_saga_segments').select('ordre').eq('sous_saga_id',currentSousSagaId).order('ordre',{ascending:false}).limit(1);const ord=(Number(r.data?.[0]?.ordre)||0)+1;const {error}=await db().from('sous_saga_segments').insert({user_id:currentUser.id,sous_saga_id:currentSousSagaId,libelle:'Tome '+ord,numero:ord,ordre:ord});if(error)return alert(error.message);renderSousSagaPlanGlobal(document.getElementById('soussaga-tab-content'))}
   async function saveSsSegmentField(id,key,val){await db().from('sous_saga_segments').update({[key]:val,updated_at:new Date().toISOString()}).eq('id',id)}
@@ -8291,9 +8312,27 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   function openDrawer(title,html){let ov=document.getElementById('passerelle-drawer');if(!ov){ov=document.createElement('div');ov.id='passerelle-drawer';ov.className='side-drawer-overlay';ov.innerHTML='<aside class="side-drawer"><div class="drawer-head"><h2 id="drawer-title"></h2><button class="drawer-close" onclick="closeDrawer()">✕</button></div><div class="drawer-body" id="drawer-body"></div></aside>';ov.addEventListener('click',e=>{if(e.target===ov)closeDrawer()});document.body.appendChild(ov);}document.getElementById('drawer-title').textContent=title;document.getElementById('drawer-body').innerHTML=html;ov.classList.add('open');}
   function closeDrawer(){document.getElementById('passerelle-drawer')?.classList.remove('open');}
 
+  function sanitizeRichHtmlLiam(html){
+    const doc=new DOMParser().parseFromString('<div>'+String(html||'')+'</div>','text/html');
+    const allowed=new Set(['DIV','P','BR','STRONG','B','EM','I','U','UL','OL','LI','BLOCKQUOTE','H2','H3','H4','HR','A','SPAN']);
+    function clean(node){
+      if(node.nodeType===8)return document.createTextNode('');
+      if(node.nodeType===3)return document.createTextNode(node.textContent);
+      if(node.nodeType!==1)return document.createTextNode('');
+      const tag=node.tagName;
+      const el=allowed.has(tag)?document.createElement(tag.toLowerCase()):document.createDocumentFragment();
+      if(tag==='A'&&el.nodeType===1){const href=node.getAttribute('href')||'';if(/^(https?:|mailto:|#)/i.test(href)){el.setAttribute('href',href);el.setAttribute('rel','noopener noreferrer');}}
+      for(const child of Array.from(node.childNodes))el.appendChild(clean(child));
+      return el;
+    }
+    const result=document.createElement('div');
+    for(const child of Array.from(doc.body.firstElementChild?.childNodes||[]))result.appendChild(clean(child));
+    return result.innerHTML;
+  }
   function renderSimpleRichText(value){
     let raw=String(value||'').replace(/\r\n?/g,'\n').trim();
     if(!raw)return '';
+    if(/<\/?(?:p|div|ul|ol|li|strong|em|br|blockquote|h[2-4])\b|<!--/i.test(raw))return `<div class="rich-readable-v576c37">${sanitizeRichHtmlLiam(raw)}</div>`;
     // Les imports Notion utilisent parfois --- comme séparateur au milieu d'une ligne.
     raw=raw.replace(/\s+---\s+/g,'\n\n---\n\n');
     const inline=(text)=>safeText(text||'')
