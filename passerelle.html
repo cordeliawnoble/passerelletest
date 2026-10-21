@@ -1073,6 +1073,19 @@
 .manuscript-summary-toggle[disabled]{opacity:.45;cursor:default}
 
 /* C114 · fiches secondaires compactes + importance import personnages */
+
+/* LIAM C134 : cartes personnages compactes, 3 colonnes */
+#work-character-gallery.work-character-cards-c92{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important;align-items:stretch}
+#work-character-gallery .work-character-card-c92{display:flex!important;flex-direction:column!important;min-width:0!important;height:auto!important;min-height:0!important;padding:0!important;overflow:hidden!important;border-radius:14px!important}
+#work-character-gallery .work-character-card-c92>img,
+#work-character-gallery .work-character-card-c92>.work-character-placeholder-c92{width:100%!important;height:165px!important;max-height:165px!important;object-fit:cover!important;object-position:center 25%!important;flex:none!important;margin:0!important;border-radius:0!important}
+#work-character-gallery .work-character-copy-c92{padding:12px 14px!important;flex:1;min-width:0}
+#work-character-gallery .work-character-copy-c92 h3{font-size:16px!important;line-height:1.3!important;margin:0 0 7px!important}
+#work-character-gallery .work-character-copy-c92 p{display:none!important}
+#work-character-gallery .work-character-tags-c92{display:flex;gap:5px;flex-wrap:wrap}
+#work-character-gallery .work-character-tags-c92 .tag{font-size:11px!important}
+@media(max-width:900px){#work-character-gallery.work-character-cards-c92{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:580px){#work-character-gallery.work-character-cards-c92{grid-template-columns:1fr!important}}
 </style>
 
 <style id="c43-ui">
@@ -5444,7 +5457,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
       db().from('oeuvres').select('id,titre,genre,statut,statut_editorial_actuel,couverture,banniere,saga_id,sous_saga_id,univers_id,numero_sous_saga,sous_sagas(nom),sagas(nom),univers(*)').eq('saga_id',currentSagaId).eq('archive',false).order('titre')
     ]);
     const ssIds=(ssr.data||[]).map(x=>x.id),child=ssIds.length?await db().from('oeuvres').select('id,titre,genre,statut,statut_editorial_actuel,couverture,banniere,saga_id,sous_saga_id,univers_id,numero_sous_saga,sous_sagas(nom),sagas(nom),univers(*)').in('sous_saga_id',ssIds).eq('archive',false).order('titre'):{data:[]};
-    sagaWorksC38c=[...new Map([...(wr.data||[]),...(child.data||[])].map(x=>[x.id,x])).values()];
+    sagaWorksC38c=[...new Map([...(wr.data||[]),...(child.data||[])].map(x=>[x.id,x])).values()].sort(liamTomeSortC134);
     const subOpts=[...new Map(sagaWorksC38c.filter(x=>x.sous_saga_id&&x.sous_sagas?.nom).map(x=>[x.sous_saga_id,x.sous_sagas.nom])).entries()].map(([id,n])=>`<option value="${id}">${safeText(n)}</option>`).join('');
     const edOpts=[...new Set(sagaWorksC38c.map(x=>x.statut_editorial_actuel).filter(Boolean))].map(x=>`<option>${safeText(x)}</option>`).join('');
     zone.innerHTML=`<div class="head-row"><div><h2>Œuvres</h2></div><button class="btn-primary" onclick="openOeuvreModalForSaga()">+ Créer une œuvre</button></div><div class="compact-filterbar-v576c14"><input class="filter-search" id="saga-work-q" placeholder="🔍 Rechercher une œuvre…" oninput="renderSagaWorksGridC38c()"><select id="saga-work-ss" onchange="renderSagaWorksGridC38c()"><option value="">Sous-saga · Toutes</option>${subOpts}</select><select id="saga-work-ed" onchange="renderSagaWorksGridC38c()"><option value="">Éditorial · Tous</option>${edOpts}</select>${workViewSwitchC38('renderSagaWorksGridC38c')}</div><div id="saga-work-grid"></div>`;
@@ -5452,7 +5465,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   }
   function renderSagaWorksGridC38c(){
     const z=document.getElementById('saga-work-grid');if(!z)return;const q=(document.getElementById('saga-work-q')?.value||'').toLowerCase(),ss=document.getElementById('saga-work-ss')?.value||'',ed=document.getElementById('saga-work-ed')?.value||'';
-    const rows=sagaWorksC38c.filter(o=>(!q||[o.titre,o.genre,o.sous_sagas?.nom,o.statut_editorial_actuel,o.statut].filter(Boolean).join(' ').toLowerCase().includes(q))&&(!ss||o.sous_saga_id===ss)&&(!ed||o.statut_editorial_actuel===ed));
+    const rows=sagaWorksC38c.filter(o=>(!q||[o.titre,o.genre,o.sous_sagas?.nom,o.statut_editorial_actuel,o.statut].filter(Boolean).join(' ').toLowerCase().includes(q))&&(!ss||o.sous_saga_id===ss)&&(!ed||o.statut_editorial_actuel===ed)).sort(liamTomeSortC134);
     z.innerHTML=rows.length?`<div class="entity-gallery saga-catalog-grid-c38c ${workCardViewC38==='compact'?'work-grid-compact-c38':''}">${rows.map(workCatalogCardV576c36).join('')}</div>`:'<div class="empty">Aucune œuvre avec ces filtres.</div>';
   }
 
@@ -6497,7 +6510,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     zone.innerHTML='<div class="status-line">Chargement…</div>';
     const {data,error}=await db().from('oeuvres').select('id,titre,resume,pitch,statut,statut_editorial_actuel,mots_ecrits,objectif_mots,couverture,banniere,accent_color,secondary_color,soft_color,dark_color,charte_override,saga_id,sous_saga_id,univers_id,numero_sous_saga,nature_sous_saga,ordre_sous_saga').eq('sous_saga_id',currentSousSagaId).eq('archive',false).order('ordre_sous_saga',{ascending:true,nullsFirst:false});
     if(error){zone.innerHTML=`<div class="empty">Erreur : ${safeText(error.message)}</div>`;return}
-    const works=(data||[]).sort((a,b)=>{const ao=Number.isFinite(Number(a.ordre_sous_saga))?Number(a.ordre_sous_saga):Number.isFinite(Number(a.numero_sous_saga))?Number(a.numero_sous_saga):9999;const bo=Number.isFinite(Number(b.ordre_sous_saga))?Number(b.ordre_sous_saga):Number.isFinite(Number(b.numero_sous_saga))?Number(b.numero_sous_saga):9999;return ao-bo||String(a.titre||'').localeCompare(String(b.titre||''),'fr')}); const ids=works.map(x=>x.id); let counts={};
+    const works=(data||[]).sort(liamTomeSortC134); const ids=works.map(x=>x.id); let counts={};
     if(ids.length){const r=await db().from('chapitres').select('oeuvre_id,etat,nb_mots,objectif_mots').in('oeuvre_id',ids);(r.data||[]).forEach(c=>{counts[c.oeuvre_id]??={all:0,written:0};counts[c.oeuvre_id].all++;if((c.nb_mots||0)>0||/écrit|rédig|relu/i.test(c.etat||''))counts[c.oeuvre_id].written++})}
     await hydrateCardThemesV576c13('work',works);
     zone.innerHTML=`<div class="head-row"><h2>Les œuvres de la sous-saga</h2><button class="btn-primary" onclick="openOeuvreModalForSousSaga()">+ Créer une œuvre</button></div>
@@ -6536,8 +6549,8 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
       if(firstError) throw firstError;
 
       const ss=ssR.data||{}, segments=segR.data||[], arcs=arcsR.data||[];
-      const tomeWorks=(worksR.data||[]).sort((a,b)=>Number(a.ordre_sous_saga??a.numero_sous_saga??999)-Number(b.ordre_sous_saga??b.numero_sous_saga??999));
-      segments.forEach((seg,i)=>{const w=tomeWorks.find(w=>w.id===seg.oeuvre_id)||tomeWorks[i];if(w){seg._liamTitle='T'+(w.numero_sous_saga??(i+1))+' · '+w.titre;seg._liamWork=w}});
+      const tomeWorks=(worksR.data||[]).sort(liamTomeSortC134);
+      segments.forEach((seg,i)=>{const w=tomeWorks.find(w=>w.id===seg.oeuvre_id)||(!seg.oeuvre_id?tomeWorks[i]:null);if(w){seg._liamTitle='T'+(w.numero_sous_saga??(i+1))+' · '+w.titre;seg._liamWork=w}});segments.sort((a,b)=>liamTomeSortC134(a._liamWork||{numero_sous_saga:a.numero,titre:a.libelle},b._liamWork||{numero_sous_saga:b.numero,titre:b.libelle}));
       const overview=segments.length?`<div style="overflow:auto"><table class="plan-global-table">
         <thead><tr><th>Nom</th><th>État</th><th>Protagonistes</th><th>Intrigue</th><th>Apport au fil rouge</th><th>Situation à la fin</th><th>Statut</th></tr></thead>
         <tbody>${segments.map(s=>`<tr>
@@ -7155,6 +7168,16 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   }
 
 
+  // LIAM C134 : tri narratif, compatible T2.5 et titres sans numéro.
+  function liamTomeNumberC134(o){
+    const raw=String(o?.numero_sous_saga??'').trim().replace(',', '.');
+    const match=raw.match(/^(?:t(?:ome)?\s*)?(\d+(?:\.\d+)?)/i);
+    return match?Number(match[1]):Number.POSITIVE_INFINITY;
+  }
+  function liamTomeSortC134(a,b){
+    const na=liamTomeNumberC134(a),nb=liamTomeNumberC134(b);
+    return na-nb || String(a.titre||'').localeCompare(String(b.titre||''),'fr',{numeric:true});
+  }
   // ============================================================
   // C40 — ŒUVRES SAGA
   // Vue Front : onglets par Saga puis regroupement par Sous-saga.
@@ -7217,10 +7240,10 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     const groups=sagaSubs.map(ss=>({
       id:ss.id,
       nom:ss.nom,
-      oeuvres:oeuvres.filter(o=>o.sous_saga_id===ss.id).sort((a,b)=>(a.numero_sous_saga!==null&&a.numero_sous_saga!==''?Number(a.numero_sous_saga):9999)-(b.numero_sous_saga!==null&&b.numero_sous_saga!==''?Number(b.numero_sous_saga):9999)||String(a.titre||'').localeCompare(String(b.titre||''),'fr'))
+      oeuvres:oeuvres.filter(o=>o.sous_saga_id===ss.id).sort(liamTomeSortC134)
     })).filter(g=>g.oeuvres.length);
 
-    const direct=oeuvres.filter(o=>o.saga_id===saga.id&&!o.sous_saga_id).sort((a,b)=>(a.numero_sous_saga!==null&&a.numero_sous_saga!==''?Number(a.numero_sous_saga):9999)-(b.numero_sous_saga!==null&&b.numero_sous_saga!==''?Number(b.numero_sous_saga):9999)||String(a.titre||'').localeCompare(String(b.titre||''),'fr'));
+    const direct=oeuvres.filter(o=>o.saga_id===saga.id&&!o.sous_saga_id).sort(liamTomeSortC134);
     if(direct.length)groups.push({id:null,nom:'Hors sous-saga',oeuvres:direct});
 
     zone.innerHTML=`<div class="oeuvres-saga-tabs-v40">
