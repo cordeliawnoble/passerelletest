@@ -1716,6 +1716,78 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
 .liam-ss-state select,.liam-ss-state textarea{font:inherit;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px;min-width:120px}
 .liam-ss-state textarea{flex:1;min-width:180px;min-height:48px}
 </style>
+
+<style id="liam-passerelle-character-theme-20261023">
+/* Thème de lecture indépendant des palettes des œuvres et des sagas. */
+#content .character-detail.passerelle-character-theme {
+  --char-accent:#7555a5; --char-soft:#f8f5fb; --char-dark:#30243e;
+  --char-secondary:#e9e0f4;
+  --bg:#f8f5fb; --bg-2:#f2edf7; --card:#ffffff;
+  --panel:#ffffff; --text:#30243e; --text-dim:#746780;
+  --accent:#7555a5; --lavender:#eee7f8;
+  --line:#e5ddec; --border:#e5ddec;
+  color:#30243e; background:#f8f5fb; border-radius:18px;
+  padding:16px; color-scheme:light;
+}
+#content .passerelle-character-theme .character-hero.liam-character-hero {
+  background:#ffffff !important; border:1px solid #e5ddec;
+  box-shadow:0 4px 18px rgba(49,33,73,.05);
+  min-height:0 !important;
+}
+#content .passerelle-character-theme .character-hero-content {
+  color:#30243e !important; min-height:0 !important;
+  padding:22px 26px; align-items:center;
+}
+#content .passerelle-character-theme .character-hero-name,
+#content .passerelle-character-theme .character-hero-copy,
+#content .passerelle-character-theme .character-hero-id,
+#content .passerelle-character-theme .character-hero-quote {
+  color:#30243e !important; text-shadow:none !important; opacity:1;
+}
+#content .passerelle-character-theme .character-hero-name {font-size:clamp(27px,3vw,43px);line-height:1.14}
+#content .passerelle-character-theme .character-hero-tags span {
+  background:#eee7f8 !important; color:#47345f !important;
+  border:1px solid #ddd0ed !important;
+}
+#content .passerelle-character-theme .character-hero-actions button,
+#content .passerelle-character-theme .liam-character-actions button {
+  color:#30243e !important; background:#ffffff !important;
+  border:1px solid #ded5e9 !important;
+}
+#content .passerelle-character-theme .character-tabs {
+  background:#f4eff8 !important; border-color:#e5ddec !important;
+}
+#content .passerelle-character-theme .character-tabs button {color:#574769 !important}
+#content .passerelle-character-theme .character-tabs button.active {
+  background:#ffffff !important; color:#30243e !important;
+}
+#content .passerelle-character-theme .character-panel,
+#content .passerelle-character-theme .character-cap-block {
+  background:#ffffff !important; color:#30243e !important;
+  border-color:#e5ddec !important;
+}
+#content .passerelle-character-theme .character-panel h3,
+#content .passerelle-character-theme .character-tab-head h2 {color:#76529d !important}
+#content .passerelle-character-theme .character-panel p,
+#content .passerelle-character-theme .character-panel div,
+#content .passerelle-character-theme .character-info-line,
+#content .passerelle-character-theme .character-info-line span,
+#content .passerelle-character-theme .character-kv,
+#content .passerelle-character-theme .character-kv span {
+  color:#30243e;
+}
+#content .passerelle-character-theme .character-info-line b,
+#content .passerelle-character-theme .character-kv b {color:#63566e !important}
+#content .passerelle-character-theme input,
+#content .passerelle-character-theme select,
+#content .passerelle-character-theme textarea {
+  background:#ffffff; color:#30243e; border-color:#dcd2e5;
+}
+@media(max-width:760px){
+  #content .character-detail.passerelle-character-theme {padding:9px}
+  #content .passerelle-character-theme .character-hero-content {padding:18px}
+}
+</style>
 </head>
 <body>
 
@@ -8944,8 +9016,9 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
       renderSecondaryCharacterPageC114(content,p,d,contextLink,contextWork,rels,medias);
       return;
     }
-    const theme=characterContextThemeV575(contextWork);
-    content.innerHTML=`<div class="character-detail ${contextWork?'contextual':''}" style="--char-accent:${safeText(theme.accent)};--char-soft:${safeText(theme.soft)};--char-secondary:${safeText(theme.secondary)};--char-dark:${safeText(theme.dark)}">
+    // Fiches Personnage : thème Passerelle fixe, indépendamment de l’œuvre source.
+    // Le contexte d’œuvre reste disponible pour la navigation et les données.
+    content.innerHTML=`<div class="character-detail passerelle-character-theme">
       <div class="character-hero liam-character-hero"><div class="character-hero-content">
         <div class="character-hero-copy"><div style="font-size:12px;opacity:.82;margin-bottom:8px">Personnages › ${safeText(p.nom)}${contextWork?` · ${safeText(contextWork.titre)}`:''}</div><h1 class="character-hero-name">${safeText(p.nom)}</h1><div class="character-hero-quote">${d.citation?`« ${safeText(d.citation)} »`:''}</div><div class="character-hero-tags">${[d.age,d.espece,d.nature,d.affiliation].filter(Boolean).map(x=>`<span>${safeText(x)}</span>`).join('')}</div></div>
         <div class="character-hero-side"><div class="character-hero-id">${safeText(p.passerelle_id||'')}</div><div class="character-hero-actions liam-character-actions"><button title="Retour aux personnages" onclick="renderPersonnages()">←</button><button title="Retour à une œuvre" onclick="openCharacterWorkChooserLiam('${id}')">📖</button><button title="Modifier" onclick="editCharacterTabV575('${id}',currentCharacterTabV573)">✎</button><button title="Gérer les images" onclick="openMediaUploadDrawerV566('character','${id}')">▧</button><button title="Aide" onclick="alert('Choisis un onglet pour consulter ou modifier la fiche. Le bouton 📖 permet de retrouver les œuvres associées.')">?</button></div></div>
@@ -8959,7 +9032,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   function renderSecondaryCharacterPageC114(content,p,d,link,work,rels,medias){
     const portrait=p.portrait_url||characterMediaUrlV575((medias||[]).find(x=>/portrait/i.test(x.type||'')))||'';
     const relText=d.secondaire_relations||((rels||[]).map(r=>[r.nom_cible||r.nom_source||r.titre_relation||r.type_relation,r.description].filter(Boolean).join(' : ')).filter(Boolean).join('\n'));
-    content.innerHTML=`<div class="character-detail"><div class="character-hero liam-character-hero" style="min-height:150px"><div class="character-hero-content"><div class="character-hero-copy"><div style="font-size:12px;opacity:.82;margin-bottom:8px">Personnages › ${safeText(p.nom)}${work?` · ${safeText(work.titre)}`:''}</div><h1 class="character-hero-name">${safeText(p.nom)}</h1><div class="character-hero-tags"><span>Secondaire</span>${link?.role?`<span>${safeText(link.role)}</span>`:''}</div></div><div class="character-hero-side"><div class="character-hero-id">${safeText(p.passerelle_id||'')}</div><div class="character-hero-actions liam-character-actions"><button title="Personnages" onclick="renderPersonnages()">←</button><button title="Retour à l'œuvre" onclick="openCharacterWorkChooserLiam('${p.id}')">📖</button><button title="Modifier" onclick="editSecondaryCharacterC114('${p.id}','${work?.id||''}')">✎</button><button title="Gérer les images" onclick="openMediaUploadDrawerV566('character','${p.id}')">▧</button></div></div></div></div>
+    content.innerHTML=`<div class="character-detail passerelle-character-theme"><div class="character-hero liam-character-hero" style="min-height:150px"><div class="character-hero-content"><div class="character-hero-copy"><div style="font-size:12px;opacity:.82;margin-bottom:8px">Personnages › ${safeText(p.nom)}${work?` · ${safeText(work.titre)}`:''}</div><h1 class="character-hero-name">${safeText(p.nom)}</h1><div class="character-hero-tags"><span>Secondaire</span>${link?.role?`<span>${safeText(link.role)}</span>`:''}</div></div><div class="character-hero-side"><div class="character-hero-id">${safeText(p.passerelle_id||'')}</div><div class="character-hero-actions liam-character-actions"><button title="Personnages" onclick="renderPersonnages()">←</button><button title="Retour à l'œuvre" onclick="openCharacterWorkChooserLiam('${p.id}')">📖</button><button title="Modifier" onclick="editSecondaryCharacterC114('${p.id}','${work?.id||''}')">✎</button><button title="Gérer les images" onclick="openMediaUploadDrawerV566('character','${p.id}')">▧</button></div></div></div></div>
     <div class="character-page"><div class="character-overview-grid"><section class="character-panel character-portrait-card"><h3>Portrait</h3>${portrait?`<img src="${safeText(portrait)}" alt="${safeText(p.nom)}">`:'<div class="character-empty">Portrait facultatif</div>'}</section><div class="character-overview-side"><section class="character-panel"><h3>Essentiel</h3>${characterInfoLinesV575([['Nom / prénom',d.nom_complet||p.nom],['Fonction',d.secondaire_fonction||link?.role],['Personnalité',secondaryListC114(d.secondaire_personnalite)],['Mots-clés',secondaryListC114(d.secondaire_mots_cles)]])}</section><section class="character-panel"><h3>Utilité dans l’écriture</h3><div>${charTextV573(d.secondaire_utilite||p.resume,'À compléter')}</div></section><section class="character-panel"><h3>Place dans l’histoire</h3><div>${charTextV573(d.secondaire_histoire,'À compléter')}</div></section><section class="character-panel"><h3>Relations</h3><div>${charTextV573(relText,'À compléter')}</div></section></div></div></div></div>`;
   }
   async function editSecondaryCharacterC114(id,workId){
@@ -8979,7 +9052,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     if(tab==='relations'){renderCharacterRelationsLiam(z,p,d,linkedWorks,rels);return}
     if(tab==='apercu'){
       const works=linkedWorks.map(x=>`<div class="character-work-card" onclick="openCharacterWorkDrawerV575('${x.work.id}')">${x.work.couverture||x.work.banniere?`<img class="character-work-thumb" src="${safeText(x.work.couverture||x.work.banniere)}">`:`<div class="character-work-thumb"></div>`}<div><strong>${safeText(x.work.titre)}</strong><div style="font-size:12px;color:var(--text-dim);margin-top:4px">${safeText(x.role||x.importance||'Apparition')}</div>${x.notes_contexte?`<div style="font-size:12px;margin-top:4px">${safeText(x.notes_contexte)}</div>`:''}</div><span>›</span></div>`).join('')||'<div class="character-empty">Aucune œuvre liée</div>';
-      z.innerHTML=head+`<div class="character-overview-grid"><section class="character-panel character-portrait-card"><h3>Portrait</h3>${portrait?`<img src="${safeText(portrait)}" alt="${safeText(p.nom)}">`:'<div class="character-empty">Portrait à renseigner</div>'}</section><div class="character-overview-side"><section class="character-panel"><h3>Informations rapides</h3>${characterInfoLinesV575([['Nom complet',d.nom_complet||p.nom],['Surnom',d.surnom],['Âge',d.age],['Naissance',d.naissance],['Nationalité',d.nationalite],['Profession',d.profession],['Lieu de vie',d.lieu_vie]])}</section><section class="character-panel"><h3>Apparitions</h3>${works}</section></div></div>`;
+      z.innerHTML=head+`<div class="character-overview-grid"><div class="character-overview-side"><section class="character-panel character-portrait-card"><h3>Portrait</h3>${portrait?`<img src="${safeText(portrait)}" alt="${safeText(p.nom)}">`:'<div class="character-empty">Portrait à renseigner</div>'}</section><section class="character-panel"><h3>Apparitions</h3>${works}</section></div><div class="character-overview-side"><section class="character-panel"><h3>Informations rapides</h3>${characterInfoLinesV575([['Nom complet',d.nom_complet||p.nom],['Surnom',d.surnom],['Âge',d.age],['Naissance',d.naissance],['Nationalité',d.nationalite],['Profession',d.profession],['Lieu de vie',d.lieu_vie]])}</section><section class="character-panel"><h3>Résumé du personnage</h3><p style="white-space:pre-wrap;line-height:1.65">${charTextV573(p.resume||d.resume||'Aucun résumé renseigné pour le moment.')}</p></section></div></div>`;
     } else if(tab==='profil'){
       const prof=characterMediaByUseV575(medias,d,'profil'),apps=characterMediaByUseV575(medias,d,'appearance');
       z.innerHTML=head+`<div class="character-profile-grid c36"><div class="character-profile-col"><div>${prof?`<img class="character-appearance-hero" src="${safeText(prof)}">`:`<section class="character-panel" style="min-height:440px;display:grid;place-items:center"><div class="character-empty">Illustration Profil à choisir dans Médias</div></section>`}</div></div><div class="character-profile-col"><section class="character-panel"><h3>Apparence</h3><div class="character-appearance-media">${[0,1,2,3].map(i=>apps[i]?`<img src="${safeText(apps[i])}">`:'<div class="media-placeholder"></div>').join('')}</div>${characterAppearanceRowsV575(d.apparence)}</section><section class="character-panel"><h3>Petits +</h3>${characterBulletHtmlV575(d.petits_plus)}</section></div></div>`;
