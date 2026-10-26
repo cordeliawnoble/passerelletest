@@ -1,5 +1,5 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Passe-Ailes V13 · Maison d’autrice</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>Passe-Ailes V19 · Maison d’autrice</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#f8f5fb;--surface:#fff;--soft:#f1ebf7;--ink:#2d2633;--muted:#786f7e;--line:#e2d9e9;--violet:#76558e;--violet2:#a68cba;--pink:#b57894;--blue:#6785a4;--green:#728b74;--gold:#aa8956;--red:#a96c70;--shadow:0 12px 35px rgba(66,43,78,.08)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,system-ui,-apple-system,Segoe UI,sans-serif}.app{display:grid;grid-template-columns:238px 1fr;min-height:100vh}
@@ -1193,7 +1193,7 @@ function tabs(tab,items){return `<nav class="pa14-tabs">${items.map(([id,label])
 function line(a,b){return `<div class="pa14-line"><span>${E(a)}</span><strong>${E(b||'À définir')}</strong></div>`}
 function badge(t){return `<span class="pa14-badge">${E(t)}</span>`}
 function set(html){document.getElementById('dossier-page-zone').innerHTML=html}
-function overview(){const w=work(),d=dossier(),l=life(),active=l.routes.find(r=>r.id===l.activeRouteId), done=d.trajectory.filter(x=>x.status==='Terminée').length,total=d.trajectory.length;const summary=d.blurb||w.blurb||w.resume||w.synopsis||'';return `<div class="pa14-overview"><div class="card"><h3>🧭 État actuel</h3>${line('Statut',w.statut_editorial||w.statut_editorial_actuel)}${line('Destination finale',w.destination)}${line('Trajectoire active',active?.label)}${line('Publication prévue',w.publication)}<p class="pa14-muted">Avancement du parcours : ${done}/${total} étapes</p><progress max="${total||1}" value="${done}"></progress><hr><h4>Informations techniques</h4>${line('Identifiant Passerelle',w.passerelle_id||w.oeuvre_id)}${line('Nombre de mots',w.nb_mots||w.word_count)}</div><div class="card"><h3>✒️ Informations éditoriales</h3><h4>Quatrième de couverture</h4><p class="pa14-summary" id="blurb-v11">${E(summary||'Résumé à synchroniser depuis Passerelle.')}</p><button class="btn sm" onclick="editBlurbV11()">✎ Modifier la quatrième</button><hr>${line('Titre',w.titre)}${line('Saga',w.saga||w.saga_name)}${line('Genre',Array.isArray(w.genres)?w.genres.join(', '):(w.genres||w.genre||''))}${line('Mots-clés',Array.isArray(w.keywords)?w.keywords.join(', '):(w.keywords||w.mots_cles||''))}${line('Avertissements',Array.isArray(w.avertissements)?w.avertissements.join(', '):w.avertissements)}</div><div class="card"><div class="pa14-head"><h3>🗺️ Vie éditoriale de l'œuvre</h3><button class="btn sm" onclick="pa14AddRoute()">+ Parcours</button></div>${l.routes.map((r,i)=>`<div class="pa14-route"><div><b>${E(r.label)}</b><small>${r.id===l.activeRouteId?'Trajectoire active':r.status==='archived'?'Archivée':'À venir'}</small></div><div>${r.id===l.activeRouteId?badge('En cours'):r.status==='archived'?badge('Archive'):`<button class="btn sm" onclick="paLifeSwitch('${r.id}')">Activer</button>`}${r.status==='planned'?`<button class="btn sm" onclick="paLifeMove('${r.id}',-1)" ${i===0?'disabled':''}>↑</button><button class="btn sm" onclick="paLifeMove('${r.id}',1)" ${i===l.routes.length-1?'disabled':''}>↓</button>`:''}</div></div>`).join('')}<button class="btn sm" onclick="renderDossierTab('trajectory')">Voir les trajectoires →</button></div></div>`}
+function overview(){const w=work(),d=dossier(),l=life(),active=l.routes.find(r=>r.id===l.activeRouteId), done=d.trajectory.filter(x=>x.status==='Terminée').length,total=d.trajectory.length;const summary=w.blurb||d.blurb||w.resume||w.synopsis||'';return `<div class="pa14-overview"><div class="card"><h3>🧭 État actuel</h3>${line('Statut',w.statut_editorial||w.statut_editorial_actuel)}${line('Destination finale',w.destination)}${line('Trajectoire active',active?.label)}${line('Publication prévue',w.publication)}<p class="pa14-muted">Avancement du parcours : ${done}/${total} étapes</p><progress max="${total||1}" value="${done}"></progress><hr><h4>Informations techniques</h4>${line('Identifiant Passerelle',w.business_id||'Code métier non synchronisé')}${line('Nombre de mots',w.nb_mots||w.word_count)}</div><div class="card"><h3>✒️ Informations éditoriales</h3><h4>Quatrième de couverture</h4><p class="pa14-summary" id="blurb-v11">${E(summary||'Résumé à synchroniser depuis Passerelle.')}</p><button class="btn sm" onclick="editBlurbV11()">✎ Modifier la quatrième</button><hr>${line('Titre',w.titre)}${line('Saga',w.saga||w.saga_name)}${line('Genre',Array.isArray(w.genres)?w.genres.join(', '):(w.genres||w.genre||''))}${line('Mots-clés',Array.isArray(w.keywords)?w.keywords.join(', '):(w.keywords||w.mots_cles||''))}${line('Avertissements',Array.isArray(w.avertissements)?w.avertissements.join(', '):w.avertissements)}</div><div class="card"><div class="pa14-head"><h3>🗺️ Vie éditoriale de l'œuvre</h3><button class="btn sm" onclick="pa14AddRoute()">+ Parcours</button></div>${l.routes.map((r,i)=>`<div class="pa14-route"><div><b>${E(r.label)}</b><small>${r.id===l.activeRouteId?'Trajectoire active':r.status==='archived'?'Archivée':'À venir'}</small></div><div>${r.id===l.activeRouteId?badge('En cours'):r.status==='archived'?badge('Archive'):`<button class="btn sm" onclick="paLifeSwitch('${r.id}')">Activer</button>`}${r.status==='planned'?`<button class="btn sm" onclick="paLifeMove('${r.id}',-1)" ${i===0?'disabled':''}>↑</button><button class="btn sm" onclick="paLifeMove('${r.id}',1)" ${i===l.routes.length-1?'disabled':''}>↓</button>`:''}</div></div>`).join('')}<button class="btn sm" onclick="renderDossierTab('trajectory')">Voir les trajectoires →</button></div></div>`}
 function routeCard(x,i,active){return `<div class="pa14-step ${i===active?'current':''}"><span class="pa14-dot"></span><b>${E(x.name)}</b>${badge(x.status)}<small>${E(x.date||'Période à définir')}</small></div>`}
 function trajectory(){const d=dossier(),l=life();if(section.trajectory==='history')return tabs('trajectory',[['current','Trajectoire actuelle'],['history','Historique des trajectoires']])+`<div class="card"><h2>📦 Historique des trajectoires</h2><p class="pa14-muted">Archives en lecture seule. Les données d'origine sont conservées.</p>${l.archives.length?l.archives.map(a=>`<details class="pa14-archive"><summary><b>${E(a.label)}</b> · ${E(a.archivedAt?.slice(0,10))}</summary><h4>Étapes</h4>${(a.trajectory||[]).map(x=>line(x.name,(x.status||'')+' · '+(x.date||''))).join('')}<h4>Diffusion</h4>${(a.diffusions||[]).map(x=>line(x.name,x.value||x.date)).join('')}<h4>Notes</h4>${(a.trajectoryNotes||[]).map(n=>`<p>${E(n.text)}</p>`).join('')||'<p>Sans note.</p>'}<p>Campagnes archivées dans cet instantané : ${(a.campaigns||[]).length}</p></details>`).join(''):'<p>Aucune trajectoire archivée.</p>'}</div>`;
 const ci=Math.max(0,d.trajectory.findIndex(x=>x.status==='En cours')),c=d.trajectory[ci];return tabs('trajectory',[['current','Trajectoire actuelle'],['history','Historique des trajectoires']])+`<div class="card"><div class="pa14-head"><div><h2>✦ Trajectoire actuelle</h2><p class="pa14-muted">${E(l.routes.find(r=>r.id===l.activeRouteId)?.label||'')}</p></div><button class="btn sm" onclick="showAddTrajectoryV10()">+ Ajouter une étape</button></div><div class="pa14-steps">${d.trajectory.map((x,i)=>routeCard(x,i,ci)).join('')}</div><div id="trajectory-add-v10"></div></div><div class="pa14-duo"><div class="card"><div class="pa14-head"><h3>${E(c?.name||'Étape actuelle')}</h3><button class="btn sm" onclick="editTrajectoryV10('${E(c?.id||'')}')">✎ Modifier</button></div>${line('Période',c?.date)}${line('Canal',c?.channel)}${line('Statut',c?.status)}${line('Objectifs',c?.objectives)}${line('Liens utiles',c?.links)}<button class="btn sm" onclick="pa14NotesPanel()">📝 Notes de la trajectoire</button><div id="trajectory-edit-v10"></div></div><div class="card"><h3>🔜 Prochaines étapes</h3>${d.trajectory.filter((x,i)=>i>ci&&x.status!=='Terminée').map(x=>`<div class="pa14-next"><b>${E(x.name)}</b>${badge(x.status)}<small>${E(x.date||'À définir')}</small><button class="btn sm" onclick="editTrajectoryV10('${E(x.id)}')">Modifier</button></div>`).join('')||'<p>Aucune étape à venir.</p>'}</div></div>`}
@@ -1201,7 +1201,7 @@ function diffusion(){const d=dossier();return tabs('diffusions',[['edition','Éd
 function marketing(){const cs=(state.campaigns||[]).filter(c=>String(c.workId)===key()),ev=(state.events||[]).filter(e=>String(e.workId)===key()),d=dossier();d.marketingIdeas=d.marketingIdeas||[];let html=tabs('marketing',[['campaigns','Campagnes'],['publications','Publications'],['ideas','Idées & stratégie']]);if(section.marketing==='campaigns')html+=`<div class="pa14-kpis">${[['Campagnes',cs.length],['Publications à venir',ev.filter(e=>e.date>=new Date().toISOString().slice(0,10)).length],['Promotions',cs.filter(c=>/promo/i.test(c.type||c.name||'')).length],['Idées',d.marketingIdeas.length]].map(x=>`<div class="card"><strong>${x[1]}</strong><small>${x[0]}</small></div>`).join('')}</div><div class="card"><div class="pa14-head"><h2>🚀 Campagnes de l'œuvre</h2><button class="btn primary" onclick="pa14CampaignAdd()">+ Campagne</button></div><div class="pa14-filters"><button class="btn sm" onclick="pa14CampaignFilter('all')">Toutes</button><button class="btn sm" onclick="pa14CampaignFilter('publication')">Publication</button><button class="btn sm" onclick="pa14CampaignFilter('promotion')">Promotions</button></div>${cs.filter(c=>campaignFilter==='all'||(campaignFilter==='promotion'?/promo/i.test(c.type||c.name||''):!/promo/i.test(c.type||c.name||''))).map(c=>`<div class="pa14-route"><div><b>${E(c.name)}</b><small>${E(c.start||'')} → ${E(c.end||'')} · ${E(c.status||'À préparer')}</small></div><button class="btn sm" onclick="pa14CampaignDetail('${E(c.id)}')">Voir la fiche →</button></div>`).join('')||'<p>Aucune campagne dans ce filtre.</p>'}</div>`;else if(section.marketing==='publications')html+=`<div class="card"><h2>🗓️ Publications de l'œuvre</h2>${ev.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(e=>line(e.date,e.title)).join('')||'<p>Aucune publication renseignée.</p>'}<p class="pa14-muted">Les contenus de communication restent gérés dans le cockpit Communication.</p></div>`;else html+=`<div class="card"><div class="pa14-head"><h2>💡 Idées & stratégie</h2><button class="btn sm" onclick="addMarketingIdeaV11()">+ Idée</button></div>${d.marketingIdeas.map(x=>`<p>💡 ${E(x)}</p>`).join('')||'<p>Aucune idée pour le moment.</p>'}</div>`;return html}
 function documents(){const docs=(state.documents||[]).filter(x=>String(x.workId)===key());return `<div class="card"><div class="pa14-head"><div><h2>📄 Documents</h2><p class="pa14-muted">Références uniquement. Aucun manuscrit n'est transféré.</p></div><button class="btn primary" onclick="pa14DocAdd()">+ Référencer un document</button></div>${docs.map(x=>`<div class="pa14-route"><div><b>${E(x.name)}</b><small>${E(x.category||'Document')}</small>${x.drive?`<a target="_blank" rel="noopener" href="${E(x.drive)}">Ouvrir le lien ↗</a>`:''}</div><button class="btn sm" onclick="pa14DocDelete('${E(x.id)}')">Retirer</button></div>`).join('')||'<p>Aucun document référencé.</p>'}</div>`}
 function notes(){const d=dossier();d.noteCards=d.noteCards||[];return `<div class="card"><div class="pa14-head"><h2>📝 Notes & post-it</h2><button class="btn primary" onclick="pa14NoteAdd()">+ Post-it</button></div><div class="postits-v11">${d.noteCards.map((n,i)=>`<article><button onclick="pa14NoteDelete(${i})">×</button>${E(n)}</article>`).join('')||'<p>Aucun post-it.</p>'}</div></div>`}
-function settings(){const w=work(),d=dossier();return `<div class="card"><h2>⚙️ Paramètres du dossier</h2><h3>Identification et synchronisation</h3>${line('Identifiant unique Passerelle',w.passerelle_id||w.oeuvre_id)}${line('Destination finale (Passerelle)',w.destination)}${line('Trajectoire active (Passe-Ailes)',life().routes.find(r=>r.id===life().activeRouteId)?.label)}<hr><h3>Gestion de la fiche</h3><p class="pa14-muted">L'archivage concerne uniquement le catalogue professionnel de Passe-Ailes. Les manuscrits, les données Passerelle et l'identifiant sont préservés.</p><button class="btn ${d.paArchived?'':'danger'}" onclick="pa14Archive()">${d.paArchived?'↩ Restaurer la fiche':'📦 Clôturer et archiver'}</button></div>`}
+function settings(){const w=work(),d=dossier();return `<div class="card"><h2>⚙️ Paramètres du dossier</h2><h3>Identification et synchronisation</h3>${line('Identifiant métier Passerelle',w.business_id||'Code métier non synchronisé')}${line('Destination finale (Passerelle)',w.destination)}${line('Trajectoire active (Passe-Ailes)',life().routes.find(r=>r.id===life().activeRouteId)?.label)}<hr><h3>Gestion de la fiche</h3><p class="pa14-muted">L'archivage concerne uniquement le catalogue professionnel de Passe-Ailes. Les manuscrits, les données Passerelle et l'identifiant sont préservés.</p><button class="btn ${d.paArchived?'':'danger'}" onclick="pa14Archive()">${d.paArchived?'↩ Restaurer la fiche':'📦 Clôturer et archiver'}</button></div>`}
 const previous=renderDossierTab;
 renderDossierTab=function(tab){if(!document.getElementById('dossier-page-zone')||!currentDossier)return previous(tab);top(tab);try{if(tab==='overview')set(overview());else if(tab==='trajectory')set(trajectory());else if(tab==='diffusions')set(diffusion());else if(tab==='marketing')set(marketing());else if(tab==='documents')set(documents());else if(tab==='notes')set(notes());else if(tab==='settings')set(settings());else return previous(tab)}catch(err){console.error('Passe-Ailes dossier V14',err);return previous(tab)}};
 window.pa14Section=(tab,id)=>{section[tab]=id;renderDossierTab(tab)};
@@ -1335,6 +1335,161 @@ const originalComm=window.renderCommunication;if(typeof originalComm==='function
  // Différer le contrôle après le rendu, sans modifier les données à l'ouverture.
  const observer=new MutationObserver(()=>{if(document.querySelector('#dossier-page-tabs button.active[data-dtab="trajectory"]')){if(!document.getElementById('pa18-cleanup'))offerCleanup()}});
  window.addEventListener('DOMContentLoaded',()=>{const zone=document.getElementById('dossier-page-zone');if(zone)observer.observe(zone,{childList:true})});
+})();
+</script>
+
+<style id="pa-v19-css">
+.pa19-modal-bg{position:fixed;inset:0;z-index:1000005;background:#24182d91;display:flex;align-items:center;justify-content:center;padding:18px}
+.pa19-modal{width:min(560px,100%);max-height:90vh;overflow:auto;background:#fff;color:#352a3d;border:1px solid #e4d8ed;border-radius:20px;padding:25px;box-shadow:0 20px 70px #25182b50}
+.pa19-modal h2{font:600 26px Georgia,serif;margin:0 0 8px}.pa19-modal p{color:#75667e}
+.pa19-modal label{display:block;margin:15px 0 6px;font-weight:600}
+.pa19-modal input,.pa19-modal select,.pa19-modal textarea{width:100%;padding:11px;border:1px solid #ddcde7;border-radius:9px;background:#fff;color:#352a3d}
+.pa19-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}
+.pa19-admin-row{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:12px;border-bottom:1px solid #eee5f2}
+.pa19-admin-row div{flex:1}.pa19-admin-row small{display:block;color:#82748b}
+.pa19-muted{color:#806f8a;font-size:12px}.pa19-error{color:#a4405a;margin-top:8px}
+</style>
+
+<script id="pa-v19-js">
+/* V19 : formulaires intégrés, catalogue des parcours, lecture enrichie Passerelle. */
+(function(){
+'use strict';
+const defaults=[
+ {id:'online',name:'Publication en ligne',steps:[['Préparation de la diffusion','À préparer'],['Lecture en ligne','En cours'],['Fin de diffusion','Prévu'],['Évolution éditoriale','Prévu']],active:true},
+ {id:'subscription',name:'Lecture sous abonnement',steps:[['Préparation de l’abonnement','À préparer'],['Lecture sous abonnement','En cours'],['Fin de l’abonnement','Prévu'],['Évolution éditoriale','Prévu']],active:true},
+ {id:'selfpub',name:'Autoédition',steps:[['Préparation éditoriale','À préparer'],['Préparation fabrication','Prévu'],['Démarches administratives','Prévu'],['Mise en production','Prévu'],['Diffusion & distribution','Prévu'],['Lancement','Prévu'],['Publication','Prévu'],['Suivi post-sortie','Prévu']],active:true},
+ {id:'publisher',name:'Maison d’édition',steps:[['Préparation du dossier','À préparer'],['Sélection des maisons','Prévu'],['Soumissions','Prévu'],['Attente & réponses','Prévu'],['Décision','Prévu'],['Contractualisation éventuelle','Prévu']],active:true},
+ {id:'contest',name:'Concours',steps:[['Vérification du concours','À préparer'],['Préparation du dépôt','Prévu'],['Dépôt','Prévu'],['Période du concours','Prévu'],['Résultat','Prévu']],active:true},
+ {id:'audio',name:'Livre audio',steps:[['Préparation audio','À préparer'],['Production audio','Prévu'],['Contrôle qualité','Prévu'],['Diffusion audio','Prévu']],active:true}
+];
+function catalog(){
+ if(!state.pa19RouteTypes || !Array.isArray(state.pa19RouteTypes))state.pa19RouteTypes=JSON.parse(JSON.stringify(defaults));
+ return state.pa19RouteTypes;
+}
+const safe=x=>esc(String(x??''));
+function modal(title,body,submit){
+ document.getElementById('pa19-overlay')?.remove();
+ const overlay=document.createElement('div');overlay.id='pa19-overlay';overlay.className='pa19-modal-bg';
+ overlay.innerHTML='<section class="pa19-modal" role="dialog" aria-modal="true" aria-label="'+safe(title)+'"><h2>'+safe(title)+'</h2>'+body+'<div id="pa19-error" class="pa19-error" aria-live="polite"></div><div class="pa19-actions"><button class="btn" id="pa19-cancel">Annuler</button><button class="btn primary" id="pa19-submit">Enregistrer</button></div></section>';
+ document.body.appendChild(overlay);
+ const close=()=>overlay.remove();
+ overlay.querySelector('#pa19-cancel').onclick=close;
+ overlay.onclick=e=>{if(e.target===overlay)close()};
+ overlay.querySelector('#pa19-submit').onclick=async()=>{try{const result=await submit(overlay);if(result===false)return;close()}catch(e){overlay.querySelector('#pa19-error').textContent=e.message||'Erreur de validation'}};
+ overlay.querySelector('input,select,textarea')?.focus();
+}
+window.paLifeAdd=function(){
+ const choices=catalog().filter(t=>t.active!==false);
+ modal('Ajouter une trajectoire','<p>Choisis le prochain parcours éditorial de cette œuvre.</p><label for="pa19-type">Type de trajectoire</label><select id="pa19-type">'+choices.map(t=>'<option value="'+safe(t.id)+'">'+safe(t.name)+'</option>').join('')+'</select>',o=>{
+  const type=o.querySelector('#pa19-type').value,t=catalog().find(x=>x.id===type);
+  if(!t)throw Error('Choisis un type de parcours.');
+  const d=dossierState(currentDossier),l=d.editorialLife;
+  l.routes.push({id:'PA19-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),label:t.name,type:t.id,status:'planned',createdAt:new Date().toISOString()});
+  persist();renderDossierTab('overview');
+ });
+};
+window.pa14AddRoute=()=>window.paLifeAdd();
+function editType(id){
+ const t=catalog().find(x=>x.id===id),editing=!!t;
+ modal(editing?'Modifier un type de trajectoire':'Créer un type de trajectoire',
+ '<p>Ces réglages concernent les futurs parcours. Les parcours existants et les archives ne seront pas réécrits.</p>'+
+ '<label>Nom</label><input id="pa19-name" maxlength="100" value="'+safe(t?.name||'')+'">'+
+ '<label>Étapes par défaut (une par ligne)</label><textarea id="pa19-steps" rows="8">'+safe((t?.steps||[]).map(s=>s[0]).join('\n'))+'</textarea>'+
+ '<label><input id="pa19-active" type="checkbox" style="width:auto" '+(t?.active!==false?'checked':'')+'> Disponible à la création</label>',
+ o=>{
+  const name=o.querySelector('#pa19-name').value.trim(),steps=o.querySelector('#pa19-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!name||!steps.length)throw Error('Renseigne un nom et au moins une étape.');
+  const active=o.querySelector('#pa19-active').checked;
+  if(editing){t.name=name;t.steps=steps.map((s,i)=>[s,i===0?'À préparer':'Prévu']);t.active=active}
+  else catalog().push({id:'custom-'+Date.now(),name,steps:steps.map((s,i)=>[s,i===0?'À préparer':'Prévu']),active});
+  persist();renderBackofficeV13();
+ });
+}
+window.pa19EditType=editType;
+function backofficePanel(){
+ const nav=document.querySelector('.bo-nav-v13r'),main=document.querySelector('.bo-main-v13r');
+ if(!nav||!main)return;
+ const button=document.createElement('button');button.textContent='🧭 Types de trajectoires';button.className=paBoTabV13==='routes'?'active':'';
+ button.onclick=()=>{paBoTabV13='routes';renderBackofficeV13()};
+ nav.appendChild(button);
+ if(paBoTabV13!=='routes')return;
+ main.querySelectorAll('.bo-panel-v13r').forEach(x=>x.classList.remove('active'));
+ const section=document.createElement('section');section.className='bo-panel-v13r active';
+ section.innerHTML='<h2>Types de trajectoires</h2><p class="note">Catalogue personnalisable, indépendant de Passerelle. Désactiver un type ne supprime aucune trajectoire existante.</p><button class="btn primary" onclick="pa19EditType(null)">+ Nouveau type</button><div class="card" style="margin-top:16px">'+catalog().map(t=>'<div class="pa19-admin-row"><div><b>'+safe(t.name)+'</b><small>'+t.steps.length+' étapes · '+(t.active===false?'Indisponible':'Disponible')+'</small></div><button class="btn sm" onclick="pa19EditType('+JSON.stringify(t.id).replace(/"/g,'&quot;')+')">Modifier</button></div>').join('')+'</div>';
+ main.appendChild(section);
+}
+const previousBackoffice=renderBackofficeV13;
+renderBackofficeV13=function(){previousBackoffice();backofficePanel()};
+const originalSwitch=window.paLifeSwitch;
+window.paLifeSwitch=function(id){
+ const d=dossierState(currentDossier),l=d.editorialLife,target=l.routes.find(r=>r.id===id);
+ if(!target)return;
+ // Existing archival and confirmation logic is retained, but replace native confirm.
+ const originalConfirm=window.confirm;
+ const current=l.routes.find(r=>r.id===l.activeRouteId);
+ modal('Activer cette trajectoire','<p>Passer de <b>'+safe(current?.label)+'</b> à <b>'+safe(target.label)+'</b> ?</p><p>Le parcours actuel sera archivé avec ses données. Cette opération ne supprime pas les archives.</p>',()=>{
+  try{
+   window.confirm=()=>true;
+   // Supply the configured step template to the existing switch code.
+   const template=catalog().find(x=>x.id===target.type);
+   if(template && typeof TRV10!=='undefined')TRV10[target.type]=template.steps.map(s=>[...s]);
+   originalSwitch(id);
+  }finally{window.confirm=originalConfirm}
+ });
+};
+// A canonical UUID remains available for technical use; never present it as a business code.
+function firstValue(o,keys){
+ for(const k of keys){const v=o?.[k];if(v!==undefined&&v!==null&&v!==''&&(!Array.isArray(v)||v.length))return v}
+ return undefined;
+}
+const previousRefresh19=refreshPasserelleWorksV5;
+refreshPasserelleWorksV5=async function(){
+ await previousRefresh19();
+ try{
+  const ids=proWorks.map(w=>w.oeuvre_id).filter(Boolean);if(!ids.length)return;
+  const {data,error}=await db().from('oeuvres').select('*').in('id',ids);
+  if(error)throw error;
+  const byId=new Map((data||[]).map(x=>[String(x.id),x]));
+  proWorks=proWorks.map(w=>{
+   const o=byId.get(String(w.oeuvre_id));if(!o)return w;
+   const patch={};
+   const mapping={
+    business_id:['identifiant_oeuvre','identifiant_metier','code_oeuvre','reference_oeuvre','code_unique','identifiant','reference','code'],
+    blurb:['quatrieme_de_couverture','quatrieme_couverture','quatrieme_extrait','texte_quatrieme','resume_public','resume_extrait'],
+    resume:['resume','résumé','synopsis','description'],
+    saga:['nom_saga','saga','saga_name'],
+    genres:['genres','genre_principal','genre'],
+    keywords:['mots_cles','keywords','tags'],
+    avertissements:['avertissements','content_warnings'],
+    nb_mots:['nb_mots','word_count','nombre_mots']
+   };
+   for(const [field,keys] of Object.entries(mapping)){const value=firstValue(o,keys);if(value!==undefined)patch[field]=value}
+   // Keep UUID and business identifier separate.
+   return {...w,...patch,passerelle_id:o.id};
+  });
+ }catch(e){console.warn('V19 : enrichissement Passerelle indisponible, valeurs conservées.',e)}
+};
+const oldRender=renderDossierTab;
+renderDossierTab=function(tab){
+ const r=oldRender(tab);
+ if(tab==='overview'||tab==='settings'){
+  const zone=document.getElementById('dossier-page-zone'),w=proWorks.find(x=>String(x.oeuvre_id)===String(currentDossier));
+  if(!zone||!w)return r;
+  const uuid=w.oeuvre_id;
+  const business=w.business_id||(/^(WRK-|[A-Z]{2,}-\d)/.test(String(w.passerelle_id||''))?w.passerelle_id:null);
+  zone.querySelectorAll('.pa14-line').forEach(row=>{
+   const label=row.querySelector('span')?.textContent?.trim();
+   if(label==='Identifiant Passerelle'||label==='Identifiant unique Passerelle'){
+    const val=row.querySelector('strong');
+    if(val)val.textContent=business||'Code métier non synchronisé';
+   }
+  });
+  // Show a separate technical identifier instead of passing UUID off as a business ID.
+  const panel=zone.querySelector('.pa14-overview .card');
+  if(panel&&!panel.querySelector('.pa19-techid'))panel.insertAdjacentHTML('beforeend','<p class="pa19-muted pa19-techid">Identifiant technique (UUID) : '+safe(uuid)+'</p>');
+ }
+ return r;
+};
 })();
 </script>
 </body></html>
