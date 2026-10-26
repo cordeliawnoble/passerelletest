@@ -1,5 +1,5 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Passe-Ailes V19 · Maison d’autrice</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>Passe-Ailes V20 · Maison d’autrice</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#f8f5fb;--surface:#fff;--soft:#f1ebf7;--ink:#2d2633;--muted:#786f7e;--line:#e2d9e9;--violet:#76558e;--violet2:#a68cba;--pink:#b57894;--blue:#6785a4;--green:#728b74;--gold:#aa8956;--red:#a96c70;--shadow:0 12px 35px rgba(66,43,78,.08)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,system-ui,-apple-system,Segoe UI,sans-serif}.app{display:grid;grid-template-columns:238px 1fr;min-height:100vh}
@@ -1492,4 +1492,107 @@ renderDossierTab=function(tab){
 };
 })();
 </script>
+<style id="pa-v20-style">.pa20-action{display:grid;grid-template-columns:35px minmax(220px,1fr) auto auto;align-items:center;gap:12px;padding:13px;border:1px solid #eee5f4;border-radius:12px;margin:8px 0}.pa20-action small,.pa20-table small{display:block;color:#86788e;margin-top:4px}.pa20-num{font-weight:700;color:#9169aa;text-align:center}.pa20-group{margin:23px 0 10px;font-size:13px;letter-spacing:.04em;color:#756083}.pa20-scroll{overflow:auto}.pa20-table{width:100%;border-collapse:collapse;min-width:740px}.pa20-table th,.pa20-table td{text-align:left;padding:12px 9px;border-bottom:1px solid #eee5f4;vertical-align:top}.pa20-table th{font-size:12px;color:#756083}.pa20-inline{display:flex;gap:8px}.pa20-inline>*{flex:1;min-width:0}.pa20-late{color:#a46819!important}.pa20-legacy{margin-top:12px}.pa20-legacy summary{cursor:pointer}@media(max-width:800px){.pa20-action{grid-template-columns:30px 1fr}.pa20-action .pa15-actions{grid-column:2}.pa20-action .pa15-chip{grid-column:2;width:max-content}}</style>
+<script id="pa-v20-workflows">
+(function(){
+'use strict';
+const H=v=>esc(String(v??''));
+const templates={
+ online:{label:'Publication en ligne',edit:[
+ ['Confirmer la correction des contenus à publier (V1.5)','S’assurer que les textes destinés à la diffusion ont été corrigés et sont prêts à être lus, que l’œuvre soit terminée ou publiée progressivement.'],
+ ['Préparer les informations de publication','Titre, résumé destiné aux lecteurs, présentation et informations demandées par les plateformes de lecture.']],
+ diffusion:[
+ ['Définir le rythme de publication','Préciser le rythme choisi : publication intégrale, hebdomadaire, bihebdomadaire ou autre.','Définir la diffusion'],
+ ['Définir la date de début de diffusion','Indiquer la date prévue de première mise à disposition de l’œuvre.','Définir la diffusion'],
+ ['Définir la date de fin de diffusion','Indiquer la date éventuelle de retrait de l’œuvre des plateformes, et non la date du dernier chapitre.','Définir la diffusion'],
+ ['Préparer la page œuvre sur les plateformes et renseigner les liens de lecture','Créer la présentation de l’œuvre sur les supports choisis et conserver les URL d’accès.','Préparer et programmer'],
+ ['Préparer les visuels de publication','Couverture, bannière, illustrations et autres éléments visuels nécessaires.','Préparer et programmer'],
+ ['Programmer les publications','Déposer les contenus et planifier leur mise en ligne selon le rythme défini.','Préparer et programmer'],
+ ['Préparer la fin de diffusion','Organiser le retrait de l’œuvre, informer les lecteurs si nécessaire et vérifier la désactivation des accès.','Clôturer si nécessaire',true]]},
+ subscription:{label:'Lecture sous abonnement'},
+ selfpub:{label:'Autoédition ebook',edit:[
+ ['Confirmer la correction du manuscrit (V2)','S’assurer que la relecture et les corrections de la V2 sont terminées.'],
+ ['Préparer les informations éditoriales du livre','Finaliser le titre, le résumé commercial, la présentation et les informations destinées aux lecteurs.'],
+ ["Obtenir l’ISBN de l’ebook",'Effectuer les démarches nécessaires pour disposer d’un ISBN propre à l’édition numérique.'],
+ ["Vérifier les mentions légales de l’ebook","Contrôler les informations d’édition, l’ISBN, les crédits et les mentions applicables au livre numérique."],
+ ['Vérifier les obligations de dépôt légal','Vérifier la réglementation en vigueur et accomplir les démarches éventuelles.']],
+ diffusion:[
+ ['Préparer le fichier final','', 'Préparation'],
+ ["Finaliser la couverture de l’œuvre",'', 'Préparation'],
+ ["Définir la stratégie de vente de l’œuvre",'', 'Commercialisation'],
+ ["Définir les canaux de distribution de l’œuvre",'', 'Commercialisation'],
+ ["Mettre l’œuvre en vente sur les canaux de distribution",'', 'Mise en vente'],
+ ["Renseigner les liens de vente de l’œuvre",'', 'Mise en vente'],
+ ["Préparer la présentation de l’œuvre",'', 'Mise en vente']]},
+ publisher:{label:'Maison d’édition',edit:[
+ ['Confirmer la correction du manuscrit (V2)','S’assurer que le manuscrit est prêt pour la soumission.'],
+ ["Préparer les documents de présentation de l’œuvre",'Synopsis, résumé et présentation, adaptables selon les maisons.'],
+ ["Préparer la biographie d’autrice",'Actualiser ton parcours et tes publications.'],
+ ["Identifier les maisons d’édition et vérifier leurs conditions de soumission",'Examiner les lignes éditoriales, les exigences et les périodes de réception.'],
+ ["Préparer la lettre ou le mail d’accompagnement",'Personnaliser le message pour chaque maison sélectionnée.'],
+ ["Soumettre le manuscrit aux maisons d’édition sélectionnées",'Effectuer les envois et conserver les dates de soumission.']]},
+ contest:{label:'Concours',edit:[
+ ['Confirmer la correction du manuscrit (V1.5)',''],
+ ['Vérifier le règlement et les conditions de participation au concours',''],
+ ['Préparer le dossier de participation au concours',''],
+ ["Soumettre l’œuvre au concours",''],
+ ['Suivre les étapes de participation au concours','']]}
+};
+templates.subscription.edit=templates.online.edit;
+templates.subscription.diffusion=templates.online.diffusion;
+const routeType=()=>{
+ const d=dossierState(currentDossier),life=d.editorialLife||{},r=(life.routes||[]).find(x=>x.id===life.activeRouteId),name=String(r?.label||'').toLowerCase(),type=String(r?.type||d.template||'online').toLowerCase();
+ if(/concours/.test(name)||/contest/.test(type))return 'contest';
+ if(/maison d|éditeur|edition|édition/.test(name)||/publisher/.test(type))return 'publisher';
+ if(/auto.?édition|ebook/.test(name)||/selfpub|autoedition/.test(type))return 'selfpub';
+ if(/abonnement/.test(name)||/subscription/.test(type))return 'subscription';
+ return 'online';
+};
+const dossier=()=>dossierState(currentDossier);
+const workflow=()=>{let d=dossier();d.pa20Workflows=d.pa20Workflows||{};return d.pa20Workflows};
+const current=()=>{const d=dossier(),l=d.editorialLife||{},r=(l.routes||[]).find(x=>x.id===l.activeRouteId);return {type:routeType(),key:r?.id||'legacy-'+routeType()}};
+function records(kind){const {key}=current(),store=workflow();store[key]=store[key]||{};store[key][kind]=store[key][kind]||{items:[],dismissed:[]};return store[key][kind]}
+function showModal(title,fields,onSave){document.getElementById('pa20-modal')?.remove();let el=document.createElement('div');el.className='pa19-modal-bg';el.id='pa20-modal';el.innerHTML='<div class="pa19-modal" role="dialog" aria-modal="true"><h2>'+H(title)+'</h2>'+fields+'<div class="pa19-error" id="pa20-error"></div><div class="pa19-actions"><button class="btn" id="pa20-cancel">Annuler</button><button class="btn primary" id="pa20-save">Enregistrer</button></div></div>';
+ document.body.appendChild(el);el.querySelector('#pa20-cancel').onclick=()=>el.remove();el.onclick=e=>{if(e.target===el)el.remove()};el.querySelector('#pa20-save').onclick=()=>{try{if(onSave(el)!==false)el.remove()}catch(e){el.querySelector('#pa20-error').textContent=e.message}};el.querySelector('input,select,textarea')?.focus();
+}
+function renderItems(kind){const type=routeType(),tpl=templates[type]||templates.online,seed=tpl[kind]||[],r=records(kind),rows=r.items,existing=new Set(rows.map(x=>x.seed));let out='<div class="card"><div class="pa15-head"><div><h2>'+(kind==='edit'?'📋 Actions éditoriales':type==='selfpub'?'📦 Diffusion & vente':'📖 Diffusion en ligne')+'</h2><p class="pa15-muted">Suggestions propres à cette trajectoire. Rien n’est ajouté automatiquement.</p></div><button class="btn primary" onclick="pa20Edit(\''+kind+'\')">+ Action</button></div>';
+ const groups=[...new Set(seed.map(s=>s[2]||'Actions'))];
+ for(const group of groups){const pending=seed.map((s,i)=>({s,i})).filter(x=>(x.s[2]||'Actions')===group&&!existing.has(x.i)&&!r.dismissed.includes(x.i));if(!pending.length)continue;
+ out+='<h4 class="pa20-group">'+H(group)+'</h4>';
+ for(const {s,i} of pending)out+='<div class="pa20-action"><span class="pa20-num">'+(i+1)+'</span><div><b>'+H(s[0])+'</b>'+(s[1]?'<small>'+H(s[1])+'</small>':'')+(s[3]?'<small>Facultative</small>':'')+'</div><span class="pa15-chip gray">Suggestion</span><div class="pa15-actions"><button class="btn sm" onclick="pa20Edit(\''+kind+'\',null,'+i+')">Ajouter / adapter</button><button class="btn sm" onclick="pa20Dismiss(\''+kind+'\','+i+')">Masquer</button></div></div>';
+ }
+ if(rows.length)out+='<h4 class="pa20-group">Mes actions</h4>';
+ for(const item of rows)out+='<div class="pa20-action"><input aria-label="Terminer" type="checkbox" '+(item.done?'checked':'')+' onchange="pa20Done(\''+kind+'\',\''+H(item.id)+'\',this.checked)"><div><b>'+H(item.title)+'</b>'+(item.description?'<small>'+H(item.description)+'</small>':'')+(item.date?'<small>Échéance : '+H(item.date)+'</small>':'')+'</div><span class="pa15-chip '+(item.done?'ok':'gray')+'">'+(item.done?'Terminé':'À faire')+'</span><div class="pa15-actions"><button class="btn sm" onclick="pa20Edit(\''+kind+'\',\''+H(item.id)+'\')">Modifier</button><button class="btn sm" onclick="pa20Delete(\''+kind+'\',\''+H(item.id)+'\')">Retirer</button></div></div>';
+ out+='</div>';return out;
+}
+window.pa20Dismiss=(kind,i)=>{records(kind).dismissed.push(i);persist();renderDossierTab('diffusions')};
+window.pa20Done=(kind,id,done)=>{const x=records(kind).items.find(x=>x.id===id);if(x){x.done=done;persist();renderDossierTab('diffusions')}};
+window.pa20Delete=(kind,id)=>showModal('Retirer cette action ?','<p>L’action sera retirée de ce parcours. Les autres trajectoires ne seront pas modifiées.</p>',()=>{const r=records(kind);r.items=r.items.filter(x=>x.id!==id);persist();renderDossierTab('diffusions')});
+window.pa20Edit=(kind,id,seedIndex)=>{const r=records(kind),x=r.items.find(v=>v.id===id),s=Number.isInteger(seedIndex)?templates[routeType()]?.[kind]?.[seedIndex]:null;
+ showModal(x?'Modifier une action':'Ajouter une action','<label>Action</label><input id="pa20-title" value="'+H(x?.title||s?.[0]||'')+'"><label>Description</label><textarea id="pa20-description" rows="3">'+H(x?.description||s?.[1]||'')+'</textarea><label>Échéance (facultative)</label><input type="date" id="pa20-date" value="'+H(x?.date||'')+'">',el=>{
+ const title=el.querySelector('#pa20-title').value.trim();if(!title)throw Error('Le titre est nécessaire.');const o=x||{id:'ACT-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),done:false};o.title=title;o.description=el.querySelector('#pa20-description').value;o.date=el.querySelector('#pa20-date').value;if(s)o.seed=seedIndex;if(!x)r.items.push(o);persist();renderDossierTab('diffusions');
+ });
+};
+function submissions(){let d=dossier();d.pa20Submissions=d.pa20Submissions||[];const a=d.pa20Submissions;
+ let out='<div class="card"><div class="pa15-head"><div><h2>🏛️ Suivi des soumissions</h2><p class="pa15-muted">Une ligne par maison. La date indicative est calculée à partir du délai annoncé ; son dépassement ne vaut pas refus.</p></div><button class="btn primary" onclick="pa20Submission()">+ Soumission</button></div><div class="pa20-scroll"><table class="pa20-table"><thead><tr><th>Maison d’édition</th><th>Envoi</th><th>Délai</th><th>Échéance indicative</th><th>Statut</th><th></th></tr></thead><tbody>';
+ for(const x of a){const due=dueDate(x),late=due&&x.status==='En attente'&&due<new Date().toISOString().slice(0,10);out+='<tr><td><b>'+H(x.name)+'</b>'+(x.notes?'<small>'+H(x.notes)+'</small>':'')+'</td><td>'+H(x.sent||'—')+'</td><td>'+H(x.duration?x.duration+' '+x.unit:'Non indiqué')+'</td><td>'+H(due||'Non indiquée')+(late?'<small class="pa20-late">Délai dépassé, réponse inconnue</small>':'')+'</td><td><span class="pa15-chip '+(x.status==='Accepté'?'ok':x.status==='Refusé'?'warn':'gray')+'">'+H(x.status)+'</span></td><td><button class="btn sm" onclick="pa20Submission(\''+H(x.id)+'\')">Modifier</button></td></tr>'}
+ out+='</tbody></table></div>'+(a.length?'':'<p class="pa15-muted">Aucune soumission enregistrée pour cette œuvre.</p>')+'</div>';return out;
+}
+function dueDate(x){if(!x.sent||!x.duration||!x.unit)return '';const date=new Date(x.sent+'T12:00:00');if(Number.isNaN(+date))return '';const n=Number(x.duration);if(!Number.isFinite(n)||n<=0)return '';if(x.unit==='jours')date.setDate(date.getDate()+n);else if(x.unit==='semaines')date.setDate(date.getDate()+n*7);else if(x.unit==='mois'){const day=date.getDate();date.setDate(1);date.setMonth(date.getMonth()+n);date.setDate(Math.min(day,new Date(date.getFullYear(),date.getMonth()+1,0).getDate()))}else return '';return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')}
+window.pa20Submission=id=>{const d=dossier();d.pa20Submissions=d.pa20Submissions||[];const a=d.pa20Submissions,x=a.find(v=>v.id===id),statuses=['À préparer','Envoyé','En attente','Relance à envisager','Accepté','Refusé','Retiré'];
+ showModal(x?'Modifier la soumission':'Nouvelle soumission','<label>Maison d’édition</label><input id="pa20-house" value="'+H(x?.name||'')+'"><label>Date de soumission</label><input id="pa20-sent" type="date" value="'+H(x?.sent||'')+'"><label>Délai de réponse annoncé</label><div class="pa20-inline"><input id="pa20-duration" type="number" min="1" step="1" placeholder="Ex. 3" value="'+H(x?.duration||'')+'"><select id="pa20-unit">'+['mois','semaines','jours'].map(u=>'<option '+(x?.unit===u?'selected':'')+'>'+u+'</option>').join('')+'</select></div><label>Statut</label><select id="pa20-status">'+statuses.map(s=>'<option '+((x?.status||'À préparer')===s?'selected':'')+'>'+s+'</option>').join('')+'</select><label>Notes / conditions</label><textarea id="pa20-notes" rows="3">'+H(x?.notes||'')+'</textarea><label>Lien vers les consignes (facultatif)</label><input id="pa20-url" type="url" value="'+H(x?.url||'')+'">',el=>{const name=el.querySelector('#pa20-house').value.trim();if(!name)throw Error('Indique la maison d’édition.');const duration=el.querySelector('#pa20-duration').value;if(duration&&Number(duration)<1)throw Error('Le délai doit être positif.');const o=x||{id:'SUB-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)};Object.assign(o,{name,sent:el.querySelector('#pa20-sent').value,duration,unit:el.querySelector('#pa20-unit').value,status:el.querySelector('#pa20-status').value,notes:el.querySelector('#pa20-notes').value,url:el.querySelector('#pa20-url').value});if(!x)a.push(o);persist();renderDossierTab('diffusions')});
+};
+let activeSub='edition';
+window.pa20Tab=v=>{activeSub=v;renderDossierTab('diffusions')};
+const prior=renderDossierTab;
+renderDossierTab=function(tab){if(tab!=='diffusions'||!currentDossier||!document.getElementById('dossier-page-zone'))return prior(tab);
+ document.querySelectorAll('#dossier-page-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.dtab===tab));
+ const type=routeType(),other=type==='publisher'?'soumissions':type==='contest'?null:'diffusion';if(!other)activeSub='edition';if(activeSub!=='edition'&&activeSub!==other)activeSub='edition';
+ let tabs='<nav class="pa14-tabs"><button class="'+(activeSub==='edition'?'active':'')+'" onclick="pa20Tab(\'edition\')">Édition</button>'+(other?'<button class="'+(activeSub===other?'active':'')+'" onclick="pa20Tab(\''+other+'\')">'+(other==='soumissions'?'Soumissions':type==='selfpub'?'Diffusion & vente':'Diffusion')+'</button>':'')+'</nav>';
+ let body=activeSub==='edition'?renderItems('edit'):activeSub==='soumissions'?submissions():renderItems('diffusion');
+ // Keep legacy actions visible and read-only until manually migrated; no automatic deletion.
+ const d=dossier();if(activeSub==='edition'&&(d.editorialTasks||[]).length)body+='<details class="card pa20-legacy"><summary>📦 Anciennes actions enregistrées ('+d.editorialTasks.length+')</summary><p class="pa15-muted">Conservées séparément pour éviter toute perte. Elles ne sont pas modifiées par les nouveaux modèles.</p>'+d.editorialTasks.map(x=>'<p>'+H(x.done?'✅ ':'◻️ ')+H(x.title)+'</p>').join('')+'</details>';
+ document.getElementById('dossier-page-zone').innerHTML=tabs+body;
+};
+})();</script>
 </body></html>
