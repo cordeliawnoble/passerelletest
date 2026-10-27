@@ -1813,6 +1813,11 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
 #work-character-gallery .work-character-card-c92 .importance-select:not(.work-character-importance-c135 select),
 #work-character-gallery .work-character-card-c92 .character-importance-control,
 #work-character-gallery .work-character-card-c92 .work-character-tags-c92{display:none!important}
+/* C137 : un seul sélecteur d’importance sur les cartes de l’œuvre.
+   Le module complémentaire ajoute parfois un second champ à la carte. */
+#work-character-gallery .work-character-card-c92 select:not(.work-character-importance-c135 select),
+#work-character-gallery .work-character-card-c92 label,
+#work-character-gallery .work-character-card-c92 .character-importance-control {display:none!important}
 </style>
 </head>
 <body>
