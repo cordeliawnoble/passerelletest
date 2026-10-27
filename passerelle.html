@@ -4928,7 +4928,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   function isWrittenChapterC96(c){
     if(!c)return false;
     const state=String(c.etat||c.statut||'').toLowerCase();
-    return (Number(c.nb_mots)||0)>0 || /écrit|ecrit|rédig|redig|relu|termin/.test(state);
+    return (Number(c.nb_mots)||0)>0 || /écrit|ecrit|rédig|redig|relu|termin|à relire|a relire/.test(state);
   }
   async function syncPlanningFromManuscriptC94(){
     // C96 · Une ligne technique dans chapitres ne suffit plus à déclarer un chapitre écrit.
@@ -7743,7 +7743,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     if(error){zone.innerHTML=`<div class="empty">Erreur : ${safeText(error.message)}</div>`;return;}
     const rows=(data||[]).filter(c=>{
       const state=String(c.etat||c.statut||'').toLowerCase();
-      return (Number(c.nb_mots)||0)>0 || /écrit|ecrit|rédig|redig|relu|termin/.test(state);
+      return (Number(c.nb_mots)||0)>0 || /écrit|ecrit|rédig|redig|relu|termin|à relire|a relire/.test(state);
     });
     const words=rows.reduce((a,c)=>a+(c.nb_mots||0),0);
     const body=rows.map((c,i)=>{
@@ -10244,7 +10244,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   const _renderOeuvreRelectureInfoC109=renderOeuvreRelectureInfoV42;renderOeuvreRelectureInfoV42=async function(zone,relecture){await _renderOeuvreRelectureInfoC109(zone,relecture);const input=document.getElementById('relecture-report-file-v19');if(input){input.accept='.json,application/json';input.onchange=e=>importEditorialJsonC109(currentOeuvreId,e.target.files[0]);const lab=input.closest('label');if(lab)lab.childNodes[0].nodeValue='🧬 Importer l’avis JSON ';const p=lab?.parentElement?.querySelector('p');if(p)p.textContent='Format Passerelle 1.0 · prévisualisation avant import.'}}
 
   // Relecture explicite : aucune création automatique. Snapshot au démarrage.
-  async function ensureOeuvreRelectureV42(zone){let {data:rs,error}=await db().from('relectures').select('*').eq('oeuvre_id',currentOeuvreId).order('created_at',{ascending:false}).limit(1);if(error)throw error;if(!rs?.length){const {data:chs}=await db().from('chapitres').select('id,nb_mots,etat,statut').eq('oeuvre_id',currentOeuvreId);const rows=(chs||[]).filter(c109WrittenChapter);zone.innerHTML=`${relectureSubnavV42()}<div class="panel" style="max-width:760px"><h2>Relecture non démarrée</h2><p>${rows.length?`${rows.length} chapitre(s) écrit(s) sont prêts à être figés comme point de départ.`:'Le Manuscrit ne contient encore aucun chapitre écrit.'}</p>${rows.length?`<div class="row2"><div><label>Version source</label><select id="c109-rel-source"><option>V1</option><option>V1.5</option></select></div><div><label>Version cible</label><select id="c109-rel-target"><option>V1.5</option><option>V2</option></select></div></div><button class="btn-primary" onclick="startRelectureC109()">▶ Démarrer la relecture</button>`:''}</div>`;return null}currentRelectureV2=rs[0];currentRelectureId=rs[0].id;return rs[0]}
+  async function ensureOeuvreRelectureV42(zone){let {data:rs,error}=await db().from('relectures').select('*').eq('oeuvre_id',currentOeuvreId).order('created_at',{ascending:false}).limit(1);if(error)throw error;if(!rs?.length){const {data:chs}=await db().from('chapitres').select('id,nb_mots,etat,statut').eq('oeuvre_id',currentOeuvreId);const rows=(chs||[]).filter(c109WrittenChapter);zone.innerHTML=`${relectureSubnavV42()}<div class="panel" style="max-width:760px"><h2>Relecture non démarrée</h2><p>${rows.length?`${rows.length} chapitre(s) écrit(s) sont prêts à être figés comme point de départ.`:'Aucun chapitre écrit détecté dans la table Manuscrit. Vérifie la synchronisation depuis le Plan.'}</p>${rows.length?`<div class="row2"><div><label>Version source</label><select id="c109-rel-source"><option>V1</option><option>V1.5</option></select></div><div><label>Version cible</label><select id="c109-rel-target"><option>V1.5</option><option>V2</option></select></div></div><button class="btn-primary" onclick="startRelectureC109()">▶ Démarrer la relecture</button>`:''}</div>`;return null}currentRelectureV2=rs[0];currentRelectureId=rs[0].id;return rs[0]}
   async function startRelectureC109(){const source=document.getElementById('c109-rel-source').value,target=document.getElementById('c109-rel-target').value,{data:chs,error}=await db().from('chapitres').select('*').eq('oeuvre_id',currentOeuvreId).order('ordre');if(error)return alert(error.message);const rows=(chs||[]).filter(c109WrittenChapter);const cr=await db().from('relectures').insert({user_id:currentUser.id,oeuvre_id:currentOeuvreId,type:`${source} → ${target}`,statut:'en cours',date_debut:new Date().toISOString().slice(0,10),version_source:source,version_cible:target}).select().single();if(cr.error)return alert('Migration C109 requise : '+cr.error.message);const snaps=rows.map(c=>({user_id:currentUser.id,relecture_id:cr.data.id,chapitre_id:c.id,statut:'à relire',mots_depart:Number(c.nb_mots||0),mots_relecture:Number(c.nb_mots||0)}));if(snaps.length){const q=await db().from('relecture_chapitres').insert(snaps);if(q.error)return alert('Migration C109 requise : '+q.error.message)}renderOeuvreRelectureV2(document.getElementById('oeuvre-tab-content'))}
 
   // Suivi versionné avec delta de mots et légende canonique.
@@ -10292,6 +10292,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   c109WrittenChapter=function(ch){const st=String(ch?.etat||ch?.statut||'').toLowerCase();return Number(ch?.nb_mots||0)>0||/écrit|ecrit|rédig|redig|relu|termin|à relire|a relire/.test(st)};
 
 
+  // C141 · Sécurisation des transferts et validation des mises à jour.
   // C140 · Plan: sous-onglets sans supprimer les commandes historiques.
   let planTabC140='affichage';
   function setPlanTabC140(tab){planTabC140=tab;decoratePlanC140()}
@@ -10321,10 +10322,36 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     if(!ids.length)return alert('Sélectionne au moins un chapitre du Plan.');
     if(!['Pas commencé','En cours','Terminé'].includes(status))return;
     if(!confirm(`Passer ${ids.length} élément(s) du Plan à « ${status} » ?`))return;
-    const r=await db().from('plans').update({statut:status}).eq('oeuvre_id',currentOeuvreId).in('id',ids).select('id');
-    if(r.error||r.data?.length!==ids.length)return alert('Mise à jour incomplète : '+(r.error?.message||'certaines lignes ne sont pas modifiables'));
+    const {data:plans,error:readError}=await db().from('plans').select('*').eq('oeuvre_id',currentOeuvreId).in('id',ids);
+    if(readError||!plans||plans.length!==ids.length)return alert('Lecture des éléments sélectionnés impossible : '+(readError?.message||'sélection incomplète'));
+    const changed=[];let errors=[];
+    for(const plan of plans){
+      const upd=await db().from('plans').update({statut:status}).eq('id',plan.id).eq('oeuvre_id',currentOeuvreId).select('id');
+      if(upd.error||!upd.data?.length){errors.push(`${plan.titre||plan.nom||plan.id}: ${upd.error?.message||'non enregistré'}`);continue}
+      changed.push(plan);
+    }
+    // Un plan terminé est une étape de rédaction, mais on ne crée jamais de texte fictif.
+    // On synchronise la présence de chapitres par numéro lorsqu'il existe une référence claire.
+    if(status==='Terminé'&&changed.length){
+      const res=await db().from('chapitres').select('id,numero,ordre,etat,statut,titre').eq('oeuvre_id',currentOeuvreId);
+      if(res.error){errors.push('Manuscrit : '+res.error.message)}
+      else{
+        for(const plan of changed){
+          const n=Number(plan.numero??plan.numero_chapitre??plan.ordre);
+          if(!Number.isFinite(n)||n<=0)continue;
+          const match=(res.data||[]).find(c=>Number(c.numero??c.ordre)===n);
+          if(match){
+            const st=String(match.etat||match.statut||'').toLowerCase();
+            if(!/à relire|a relire|relu/.test(st)){
+              const r=await db().from('chapitres').update({etat:'Écrit'}).eq('id',match.id).eq('oeuvre_id',currentOeuvreId);
+              if(r.error)errors.push(`Chapitre ${n} : ${r.error.message}`);
+            }
+          }
+        }
+      }
+    }
     selectedPlanIdsC61=new Set();await renderOeuvrePlans(document.getElementById('oeuvre-tab-content'));
-    alert('Statuts du Plan enregistrés. Les chapitres du Manuscrit ne sont jamais inventés : seuls les chapitres réellement présents y figurent.');
+    alert(`${changed.length}/${ids.length} élément(s) du Plan enregistrés.${errors.length?'\n\nÀ vérifier :\n'+errors.slice(0,8).join('\n'):''}`);
   }
   function decorateManuscriptC140(zone){
     const table=zone.querySelector('.manuscript-table');if(!table)return;
@@ -10338,21 +10365,37 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     const toolbar=document.createElement('div');toolbar.className='c140-man-bulk';toolbar.innerHTML='<strong>Actions groupées</strong><button class="btn-secondary" onclick="bulkManuscriptC140(\'Écrit\')">Marquer Écrit</button><button class="btn-primary" onclick="bulkManuscriptC140(\'À relire\')">Envoyer en relecture</button>';
     table.closest('.panel')?.before(toolbar);
   }
+  async function ensureCampaignC141(){
+    const rr=await db().from('relectures').select('id').eq('oeuvre_id',currentOeuvreId).order('created_at',{ascending:false}).limit(1);
+    if(rr.error)throw new Error(rr.error.message);
+    if(rr.data?.length)return rr.data[0].id;
+    const create=await db().from('relectures').insert({user_id:currentUser.id,oeuvre_id:currentOeuvreId,type:'V1 → V1.5',statut:'en cours',date_debut:new Date().toISOString().slice(0,10),version_source:'V1',version_cible:'V1.5'}).select('id').single();
+    if(create.error)throw new Error('Création de campagne impossible : '+create.error.message);
+    return create.data.id;
+  }
   async function setManuscriptStateC140(id,state,refresh=true){
-    const r=await db().from('chapitres').update({etat:state}).eq('id',id).eq('oeuvre_id',currentOeuvreId).select('id,nb_mots');
-    if(r.error||!r.data?.length){alert('État non enregistré : '+(r.error?.message||'chapitre introuvable'));return false}
-    if(state==='À relire'){
-      const cr=await db().from('relectures').select('id').eq('oeuvre_id',currentOeuvreId).order('created_at',{ascending:false}).limit(1);
-      if(cr.error){alert('Relecture indisponible : '+cr.error.message);return false}
-      if(cr.data?.length){
-        const rid=cr.data[0].id,ex=await db().from('relecture_chapitres').select('id').eq('relecture_id',rid).eq('chapitre_id',id).limit(1);
-        if(ex.error){alert(ex.error.message);return false}
-        if(ex.data?.length){const u=await db().from('relecture_chapitres').update({statut:'à relire'}).eq('id',ex.data[0].id);if(u.error){alert(u.error.message);return false}}
-        else {const n=Number(r.data[0].nb_mots)||0;const u=await db().from('relecture_chapitres').insert({user_id:currentUser.id,relecture_id:rid,chapitre_id:id,statut:'à relire',mots_depart:n,mots_relecture:n});if(u.error){alert(u.error.message);return false}}
-      }else alert('État enregistré. Démarre une campagne dans Relecture pour activer le suivi de correction.');
-    }
-    if(refresh)await renderOeuvreManuscrit(document.getElementById('oeuvre-tab-content'));
-    return true;
+    if(!['Écrit','À relire'].includes(state))return false;
+    try{
+      // Préparer le circuit AVANT de modifier le chapitre pour éviter une disparition sans suivi.
+      let campaignId=null,chapter=null;
+      if(state==='À relire'){
+        const read=await db().from('chapitres').select('id,nb_mots').eq('id',id).eq('oeuvre_id',currentOeuvreId).single();
+        if(read.error)throw new Error(read.error.message);
+        chapter=read.data;
+        campaignId=await ensureCampaignC141();
+        const ex=await db().from('relecture_chapitres').select('id').eq('relecture_id',campaignId).eq('chapitre_id',id).limit(1);
+        if(ex.error)throw new Error(ex.error.message);
+        const n=Number(chapter.nb_mots)||0;
+        const change=ex.data?.length
+          ? await db().from('relecture_chapitres').update({statut:'à relire'}).eq('id',ex.data[0].id)
+          : await db().from('relecture_chapitres').insert({user_id:currentUser.id,relecture_id:campaignId,chapitre_id:id,statut:'à relire',mots_depart:n,mots_relecture:n});
+        if(change.error)throw new Error('Envoi en relecture impossible : '+change.error.message);
+      }
+      const r=await db().from('chapitres').update({etat:state}).eq('id',id).eq('oeuvre_id',currentOeuvreId).select('id');
+      if(r.error||!r.data?.length)throw new Error(r.error?.message||'chapitre introuvable');
+      if(refresh)await renderOeuvreManuscrit(document.getElementById('oeuvre-tab-content'));
+      return true;
+    }catch(e){alert('Chapitre non transféré : '+e.message);return false}
   }
   async function bulkManuscriptC140(state){const ids=[...document.querySelectorAll('.c140-man-check:checked')].map(x=>x.value);if(!ids.length)return alert('Sélectionne des chapitres.');if(!confirm(`Passer ${ids.length} chapitre(s) à « ${state} » ?`))return;let n=0;for(const id of ids){if(await setManuscriptStateC140(id,state,false))n++}await renderOeuvreManuscrit(document.getElementById('oeuvre-tab-content'));alert(`${n}/${ids.length} chapitre(s) mis à jour.`)}
 
