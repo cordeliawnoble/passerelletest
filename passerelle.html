@@ -1788,6 +1788,17 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   #content .passerelle-character-theme .character-hero-content {padding:18px}
 }
 </style>
+<style id="c135-work-gallery">
+/* C135 · Galerie œuvre : portrait intégral et légende incrustée */
+.work-character-cards-c92{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(205px,1fr))!important;gap:18px!important}
+.work-character-card-c92{position:relative!important;display:block!important;min-height:0!important;padding:0!important;overflow:hidden!important;border-radius:16px!important;aspect-ratio:3/4!important;background:var(--card)!important}
+.work-character-card-c92>img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important;object-position:center center!important;background:var(--bg-2)!important}
+.work-character-card-c92 .work-character-placeholder-c92{width:100%!important;height:100%!important;display:grid!important;place-items:center!important}
+.work-character-card-c92 .work-character-copy-c92{position:absolute!important;bottom:0;left:0;right:0;padding:42px 13px 12px!important;background:linear-gradient(transparent,rgba(12,11,24,.93))!important;color:white!important}
+.work-character-card-c92 .work-character-head-c92{display:flex!important;align-items:end!important;justify-content:space-between!important;gap:6px!important}
+.work-character-card-c92 .work-character-head-c92 h3{color:white!important;font-size:19px!important;margin:0!important;text-shadow:0 1px 4px #000}
+.work-character-importance-c135 select{max-width:125px!important;min-width:0!important;font-size:11px!important;padding:5px 3px!important;border:1px solid #ffffff55!important;background:#1d2038dd!important;color:white!important;border-radius:7px!important;cursor:pointer!important}
+</style>
 </head>
 <body>
 
@@ -4793,7 +4804,18 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     const objectifAnnee = objectifAnnuel.data?.objectif_mots;
     const pctAnnee = objectifAnnee ? Math.min(100, Math.round(motsAnnee/objectifAnnee*100)) : 0;
 
-    const writingCards=(enBureau.data||[]).slice(0,3).map(o=>{const pct=o.objectif_mots?Math.min(100,Math.round((o.mots_ecrits||0)/o.objectif_mots*100)):0;return `<article class="home-writing-card" onclick="openOeuvreDetail('${o.id}')"><div class="home-writing-cover">${o.couverture?`<img src="${safeText(o.couverture)}">`:''}</div><div class="home-writing-body"><div class="home-writing-title">${safeText(o.titre)}</div><div class="home-writing-progress"><i style="width:${pct}%"></i></div><div class="home-writing-meta"><span>${safeText(o.statut_editorial_actuel||o.statut||'En écriture')}</span><b>${pct}%</b></div></div></article>`}).join('');
+    // C135 : progression par chapitres du Plan, pas par compteur de mots potentiellement obsolète.
+    const writingIdsC135=(enBureau.data||[]).map(o=>o.id);
+    const progressC135=new Map();
+    if(writingIdsC135.length){
+      const [pr,cr]=await Promise.all([
+        db().from('plans').select('oeuvre_id,statut').in('oeuvre_id',writingIdsC135),
+        db().from('chapitres').select('oeuvre_id,etat,nb_mots').in('oeuvre_id',writingIdsC135)
+      ]);
+      if(!pr.error)(pr.data||[]).forEach(x=>{const v=progressC135.get(x.oeuvre_id)||{total:0,done:0};v.total++;if(/^(terminé|termine|écrit|ecrit)$/i.test(String(x.statut||'').trim()))v.done++;progressC135.set(x.oeuvre_id,v)});
+      if(!cr.error)(cr.data||[]).forEach(x=>{if(progressC135.get(x.oeuvre_id)?.total)return;const v=progressC135.get(x.oeuvre_id)||{total:0,done:0};v.total++;if(Number(x.nb_mots||0)>0||/écrit|ecrit|relu|termin/i.test(x.etat||''))v.done++;progressC135.set(x.oeuvre_id,v)});
+    }
+    const writingCards=(enBureau.data||[]).slice(0,3).map(o=>{const cp=progressC135.get(o.id);const pct=cp?.total?Math.round(100*cp.done/cp.total):(o.objectif_mots?Math.min(100,Math.round((o.mots_ecrits||0)/o.objectif_mots*100)):0);return `<article class="home-writing-card" onclick="openOeuvreDetail('${o.id}')"><div class="home-writing-cover">${o.couverture?`<img src="${safeText(o.couverture)}">`:''}</div><div class="home-writing-body"><div class="home-writing-title">${safeText(o.titre)}</div><div class="home-writing-progress"><i style="width:${pct}%"></i></div><div class="home-writing-meta"><span>${safeText(o.statut_editorial_actuel||o.statut||'En écriture')}</span><b>${pct}%</b></div></div></article>`}).join('');
     const horizonYears=[...new Set([now.getFullYear(),now.getFullYear()+1,homeHorizonYearV576c36,...(horizonQuery.data||[]).map(o=>Number(o.horizon_annee)).filter(Boolean)])].sort((a,b)=>a-b);
     const horizonCards=(horizonQuery.data||[]).map(o=>{
       const status=o.statut_editorial_actuel||o.statut||'Projet';
@@ -7761,7 +7783,11 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
       <button class="btn-secondary ${personnageFilter==='secondaire'?'active':''}" onclick="personnageFilter='secondaire';renderOeuvrePersonnages(document.getElementById('oeuvre-tab-content'))">Secondaires</button>
       <button class="btn-secondary ${personnageFilter==='tous'?'active':''}" onclick="personnageFilter='tous';renderOeuvrePersonnages(document.getElementById('oeuvre-tab-content'))">Tous</button>
     </div><div style="display:flex;gap:8px;align-items:center"><input class="search-input" placeholder="Rechercher…" style="max-width:230px" oninput="filterCharacterCards(this.value)"><button class="btn-primary" onclick="openPersonnageOeuvreModal()">+ Ajouter un personnage</button></div></div>
-    <div class="work-character-cards-c92" id="work-character-gallery">${filtered.map(d=>{const p=d.personnages||{},cd=characterDataV573(p),summary=cd.resume_rapide||p.resume||d.role||'Présentation à compléter';return `<article class="work-character-card-c92" data-search="${safeText([p.nom,d.role,d.faction,d.etat,summary].filter(Boolean).join(' '))}" onclick="openCharacterFromWorkV575('${d.personnage_id}')">${p.portrait_url?`<img src="${safeText(p.portrait_url)}" alt="">`:`<div class="work-character-placeholder-c92">${initials(p.nom)}</div>`}<div class="work-character-copy-c92"><div class="work-character-head-c92"><h3>${safeText(p.nom||'—')}</h3>${p.favori?'<span>♥</span>':''}</div><div class="work-character-tags-c92">${[d.importance,d.role,d.pov?`POV · ${d.pov}`:null,d.etat].filter(Boolean).map(x=>`<span class="tag">${safeText(x)}</span>`).join('')}</div><p>${safeText(summary)}</p></div></article>`}).join('')||'<div class="empty">Aucun personnage.</div>'}</div>`;
+    <div class="work-character-cards-c92" id="work-character-gallery">${filtered.map(d=>{const p=d.personnages||{},cd=characterDataV573(p),summary=cd.resume_rapide||p.resume||d.role||'Présentation à compléter';return `<article class="work-character-card-c92" data-search="${safeText([p.nom,d.role,d.faction,d.etat,summary].filter(Boolean).join(' '))}" onclick="openCharacterFromWorkV575('${d.personnage_id}')">${p.portrait_url?`<img src="${safeText(p.portrait_url)}" alt="">`:`<div class="work-character-placeholder-c92">${initials(p.nom)}</div>`}<div class="work-character-copy-c92"><div class="work-character-head-c92"><h3>${safeText(p.nom||'—')}</h3>${p.favori?'<span>♥</span>':''}</div><div class="work-character-importance-c135" onclick="event.stopPropagation()"><select aria-label="Importance dans cette œuvre" onchange="saveWorkImportanceC135('${d.personnage_id}',this.value)"><option value="Principal" ${/principal/i.test(d.importance||'')?'selected':''}>★ Principal</option><option value="Secondaire" ${!/principal/i.test(d.importance||'')?'selected':''}>◇ Secondaire</option></select></div></div></article>`}).join('')||'<div class="empty">Aucun personnage.</div>'}</div>`;
+  }
+  async function saveWorkImportanceC135(characterId,importance){
+    const r=await db().from('personnages_oeuvres').update({importance}).eq('personnage_id',characterId).eq('oeuvre_id',currentOeuvreId);
+    if(r.error)alert('Importance non enregistrée : '+r.error.message);
   }
   function filterCharacterCards(q){document.querySelectorAll('#work-character-gallery .work-character-card-c92').forEach(c=>c.style.display=(c.dataset.search||'').toLowerCase().includes((q||'').toLowerCase())?'':'none');}
   function personnageOeuvreModalHtml(){
@@ -8155,7 +8181,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     editingPlanId=id||null;
     const p=id?plansData.find(x=>x.id===id):null;
     const nextOrder=plansData.length?Math.max(...plansData.map(x=>Number(x.ordre)||0))+1:1;
-    openDrawer(id?'Modifier le plan':'Nouveau plan',`<div class="plan-drawer-form-v576b"><div><label>Titre</label><input id="pf-titre" value="${safeText(p?.titre||'')}"></div><div class="row2"><div><label>Ordre du chapitre</label><input id="pf-ordre" type="number" min="1" step="1" value="${safeText(p?.ordre??nextOrder)}"></div><div><label>Statut</label><input id="pf-statut" value="${safeText(p?.statut||'')}" placeholder="À écrire, En cours…"></div></div><div class="row2"><div><label>Acte</label><input id="pf-acte" value="${safeText(p?.acte||'')}"></div><div><label>POV</label><input id="pf-pov" value="${safeText(p?.pov||'')}" placeholder="Capucine, Roy, Maddie…"></div></div><div><label>Transformation / résumé</label><textarea id="pf-transformation" style="min-height:180px">${safeText(p?.transformation||'')}</textarea></div><div class="plan-drawer-actions-v576b">${id?`<button class="btn-secondary danger-btn" style="margin-right:auto" onclick="deletePlan()">Supprimer</button>`:''}<button class="btn-secondary" onclick="closeDrawer()">Annuler</button><button class="btn-primary" id="pf-save" onclick="savePlan()">Enregistrer</button></div></div>`);
+    openDrawer(id?'Modifier le plan':'Nouveau plan',`<div class="plan-drawer-form-v576b"><div><label>Titre</label><input id="pf-titre" value="${safeText(p?.titre||'')}"></div><div class="row2"><div><label>Ordre du chapitre</label><input id="pf-ordre" type="number" min="1" step="1" value="${safeText(p?.ordre??nextOrder)}"></div><div><label>Statut</label><select id="pf-statut">${["Pas commencé","En cours","Terminé"].map(v=>`<option value="${v}" ${(/^(à écrire|a ecrire|pas commencé|pas commence)$/i.test(p?.statut||"")?v==="Pas commencé":/^(écrit|ecrit|terminé|termine)$/i.test(p?.statut||"")?v==="Terminé":v===(p?.statut||"Pas commencé"))?"selected":""}>${v}</option>`).join("")}</select></div></div><div class="row2"><div><label>Acte</label><input id="pf-acte" value="${safeText(p?.acte||'')}"></div><div><label>POV</label><input id="pf-pov" value="${safeText(p?.pov||'')}" placeholder="Capucine, Roy, Maddie…"></div></div><div><label>Transformation / résumé</label><textarea id="pf-transformation" style="min-height:180px">${safeText(p?.transformation||'')}</textarea></div><div class="plan-drawer-actions-v576b">${id?`<button class="btn-secondary danger-btn" style="margin-right:auto" onclick="deletePlan()">Supprimer</button>`:''}<button class="btn-secondary" onclick="closeDrawer()">Annuler</button><button class="btn-primary" id="pf-save" onclick="savePlan()">Enregistrer</button></div></div>`);
   }
   function closePlanModal(){closeDrawer()}
   async function savePlan(){
@@ -8184,8 +8210,31 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
       if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Enregistrer';}
       alert('La modification n’a pas été enregistrée. Recharge la fiche et réessaie.');return;
     }
+    // C135 : un plan terminé signifie que le chapitre est écrit.
+    // Même chapitre partagé entre Plan et Manuscrit, sans duplication lors des sauvegardes suivantes.
+    if(payload.statut==='Terminé'){
+      const sync=await syncCompletedPlanC135(payload);
+      if(!sync.ok)alert('Plan enregistré, mais synchronisation Manuscrit incomplète : '+sync.message);
+    }
     closeDrawer();
     await renderOeuvrePlans(document.getElementById('oeuvre-tab-content'));
+  }
+  async function syncCompletedPlanC135(p){
+    try{
+      const r=await db().from('chapitres').select('id,etat,nb_mots').eq('oeuvre_id',currentOeuvreId).eq('ordre',p.ordre).limit(1);
+      if(r.error)throw r.error;
+      if(r.data?.length){
+        const c=r.data[0];
+        if(!/écrit|ecrit|relire|relu|termin/i.test(c.etat||'')){
+          const q=await db().from('chapitres').update({etat:'Écrit'}).eq('id',c.id);
+          if(q.error)throw q.error;
+        }
+      }else{
+        const q=await db().from('chapitres').insert({user_id:currentUser.id,oeuvre_id:currentOeuvreId,ordre:p.ordre,numero:p.ordre,titre:p.titre,pov:p.pov,etat:'Écrit',nb_mots:0,resume:p.transformation});
+        if(q.error)throw q.error;
+      }
+      return {ok:true};
+    }catch(e){return {ok:false,message:e.message||String(e)}}
   }
   async function deletePlan(){if(!confirm('Supprimer ce plan ?'))return;const {error}=await db().from('plans').delete().eq('id',editingPlanId);if(error){alert('Erreur : '+error.message);return}closeDrawer();await renderOeuvrePlans(document.getElementById('oeuvre-tab-content'));}
 
@@ -10126,9 +10175,20 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   // Manuscrit : édition réelle du chapitre, pas seulement le mémo.
   async function openManuscriptDrawer(id,title){
     const {data:c,error}=await db().from('chapitres').select('*').eq('id',id).single();if(error||!c)return alert(error?.message||'Chapitre introuvable');
-    openDrawer(title,`<div class="row2"><div><label>Titre</label><input id="c109-man-title" value="${safeText(c.titre||'')}"></div><div><label>Nombre de mots</label><input id="c109-man-words" type="number" min="0" value="${Number(c.nb_mots||0)}"></div><div><label>État</label><input id="c109-man-state" value="${safeText(c.etat||c.statut||'Écrit')}"></div><div><label>Date d’écriture</label><input id="c109-man-date" type="date" value="${safeText((c.date_ecriture||'').slice(0,10))}"></div></div><label>Résumé réel du chapitre</label><textarea id="c109-man-summary" style="min-height:130px">${safeText(c.resume||'')}</textarea><label>Notes</label><div class="rich-toolbar"><button onclick="document.execCommand('bold')"><b>B</b></button><button onclick="document.execCommand('italic')"><i>I</i></button><button onclick="document.execCommand('underline')"><u>U</u></button></div><div id="rich-manuscript" class="rich-editor" contenteditable="true" style="min-height:180px">${c.memo||''}</div><button class="btn-primary" style="margin-top:14px" onclick="saveManuscriptChapterC109('${id}')">Enregistrer le chapitre</button>`);
+    openDrawer(title,`<div class="row2"><div><label>Titre</label><input id="c109-man-title" value="${safeText(c.titre||'')}"></div><div><label>Nombre de mots</label><input id="c109-man-words" type="number" min="0" value="${Number(c.nb_mots||0)}"></div><div><label>État</label><select id="c109-man-state"><option value="Écrit" ${!/^à relire$/i.test(c.etat||"")?"selected":""}>Écrit</option><option value="À relire" ${/^à relire$/i.test(c.etat||"")?"selected":""}>À relire</option></select></div><div><label>Date d’écriture</label><input id="c109-man-date" type="date" value="${safeText((c.date_ecriture||'').slice(0,10))}"></div></div><label>Résumé réel du chapitre</label><textarea id="c109-man-summary" style="min-height:130px">${safeText(c.resume||'')}</textarea><label>Notes</label><div class="rich-toolbar"><button onclick="document.execCommand('bold')"><b>B</b></button><button onclick="document.execCommand('italic')"><i>I</i></button><button onclick="document.execCommand('underline')"><u>U</u></button></div><div id="rich-manuscript" class="rich-editor" contenteditable="true" style="min-height:180px">${c.memo||''}</div><button class="btn-primary" style="margin-top:14px" onclick="saveManuscriptChapterC109('${id}')">Enregistrer le chapitre</button>`);
   }
-  async function saveManuscriptChapterC109(id){const payload={titre:document.getElementById('c109-man-title').value.trim()||'Sans titre',nb_mots:Number(document.getElementById('c109-man-words').value||0),etat:document.getElementById('c109-man-state').value.trim()||'Écrit',date_ecriture:document.getElementById('c109-man-date').value||null,resume:document.getElementById('c109-man-summary').value.trim()||null,memo:document.getElementById('rich-manuscript').innerHTML,updated_at:new Date().toISOString()};const {error}=await db().from('chapitres').update(payload).eq('id',id);if(error)return alert('Erreur : '+error.message);const total=await db().from('chapitres').select('nb_mots,etat,statut').eq('oeuvre_id',currentOeuvreId);if(!total.error){const words=(total.data||[]).filter(c109WrittenChapter).reduce((n,c)=>n+Number(c.nb_mots||0),0);await db().from('oeuvres').update({mots_ecrits:words}).eq('id',currentOeuvreId)}closeDrawer();await renderOeuvreManuscrit(document.getElementById('oeuvre-tab-content'))}
+  async function saveManuscriptChapterC109(id){const payload={titre:document.getElementById('c109-man-title').value.trim()||'Sans titre',nb_mots:Number(document.getElementById('c109-man-words').value||0),etat:document.getElementById('c109-man-state').value.trim()||'Écrit',date_ecriture:document.getElementById('c109-man-date').value||null,resume:document.getElementById('c109-man-summary').value.trim()||null,memo:document.getElementById('rich-manuscript').innerHTML,updated_at:new Date().toISOString()};const {error}=await db().from('chapitres').update(payload).eq('id',id);if(error)return alert('Erreur : '+error.message);const total=await db().from('chapitres').select('nb_mots,etat,statut').eq('oeuvre_id',currentOeuvreId);if(!total.error){const words=(total.data||[]).filter(c109WrittenChapter).reduce((n,c)=>n+Number(c.nb_mots||0),0);await db().from('oeuvres').update({mots_ecrits:words}).eq('id',currentOeuvreId)}if(payload.etat==='À relire'){
+    const rr=await db().from('relectures').select('id').eq('oeuvre_id',currentOeuvreId).order('created_at',{ascending:false}).limit(1);
+    if(!rr.error&&rr.data?.length){
+      const rid=rr.data[0].id;
+      const ex=await db().from('relecture_chapitres').select('id').eq('relecture_id',rid).eq('chapitre_id',id).limit(1);
+      if(!ex.error&&!ex.data?.length){
+        const q=await db().from('relecture_chapitres').insert({user_id:currentUser.id,relecture_id:rid,chapitre_id:id,statut:'à relire',mots_depart:payload.nb_mots,mots_relecture:payload.nb_mots});
+        if(q.error)alert('Chapitre enregistré, mais envoi en Relecture impossible : '+q.error.message);
+      }
+    }else if(!rr.error){alert('Chapitre marqué « À relire ». Pour le voir en Relecture, démarre d’abord une campagne de relecture dans cet onglet.');}
+  }
+  closeDrawer();await renderOeuvreManuscrit(document.getElementById('oeuvre-tab-content'))}
 
   // Poésie : import massif CSV / export Notion. Recueil d'origine est résolu par titre.
   async function importPoemsCsvC109(file){if(!file||!currentRecueilId)return;try{const rows=parseCsvV572(await file.text());if(!rows.length)throw new Error('Le fichier est vide.');const rr=await db().from('recueils').select('id,titre');if(rr.error)throw rr.error;const recs=rr.data||[],norm=v=>normalizeImportTextV575(String(v||''));const val=(r,aliases)=>{for(const [k,v] of Object.entries(r)){const nk=norm(k);if(aliases.some(a=>nk===norm(a)||nk.includes(norm(a))))return v}return ''};const existing=await db().from('poemes').select('id,titre,ordre').eq('recueil_id',currentRecueilId);if(existing.error)throw existing.error;const byTitle=new Map((existing.data||[]).map(x=>[norm(x.titre),x]));let created=0,updated=0,unresolved=[];for(let i=0;i<rows.length;i++){const r=rows[i],titre=String(val(r,['Titre','Nom','Poème','Poeme'])||'').trim();if(!titre)continue;const origin=String(val(r,["Recueil d'origine",'Recueil origine','Origine'])||'').trim(),originRow=origin?recs.find(x=>norm(x.titre)===norm(origin)):null;if(origin&&!originRow)unresolved.push(origin);const payload={titre,texte:String(val(r,['Texte','Poème texte','Poeme texte','Contenu'])||'').trim()||null,remarque:String(val(r,['Notes','Note'])||'').trim()||null,ordre:Number(String(val(r,['Ordre','#','N°','Numero'])||i+1).match(/\d+/)?.[0]||i+1),recueil_origine_id:originRow?.id||null};const old=byTitle.get(norm(titre));let q;if(old){q=await db().from('poemes').update(payload).eq('id',old.id);updated++}else{q=await db().from('poemes').insert({...payload,user_id:currentUser.id,recueil_id:currentRecueilId});created++}if(q.error)throw q.error}alert(`✓ Import poésie : ${created} créé(s), ${updated} mis à jour.${unresolved.length?'\n\nRecueils d’origine non reconnus : '+[...new Set(unresolved)].join(', '):''}`);renderRecueilPoemes(document.getElementById('recueil-tab-content'))}catch(e){alert('Import des poèmes impossible : '+e.message)}}
