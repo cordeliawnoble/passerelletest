@@ -1799,6 +1799,21 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
 .work-character-card-c92 .work-character-head-c92 h3{color:white!important;font-size:19px!important;margin:0!important;text-shadow:0 1px 4px #000}
 .work-character-importance-c135 select{max-width:125px!important;min-width:0!important;font-size:11px!important;padding:5px 3px!important;border:1px solid #ffffff55!important;background:#1d2038dd!important;color:white!important;border-radius:7px!important;cursor:pointer!important}
 </style>
+<style id="c136-work-gallery-repair">
+/* C136 : neutraliser les anciennes cartes horizontales et les anciens contrôles injectés. */
+#work-character-gallery{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))!important;gap:18px!important;align-items:stretch!important}
+#work-character-gallery .work-character-card-c92{display:block!important;position:relative!important;aspect-ratio:3/4!important;height:auto!important;min-height:0!important;overflow:hidden!important;padding:0!important;border-radius:16px!important;background:var(--bg-2)!important}
+#work-character-gallery .work-character-card-c92>img,
+#work-character-gallery .work-character-card-c92>.work-character-placeholder-c92{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important;min-height:0!important;margin:0!important;object-fit:contain!important;object-position:center center!important;border-radius:0!important}
+#work-character-gallery .work-character-card-c92>.work-character-placeholder-c92{display:grid!important;place-items:center!important}
+#work-character-gallery .work-character-card-c92>.work-character-copy-c92{position:absolute!important;z-index:2!important;inset:auto 0 0!important;display:block!important;flex:none!important;min-height:0!important;padding:45px 13px 12px!important;background:linear-gradient(transparent,rgba(13,12,26,.94))!important;color:#fff!important}
+#work-character-gallery .work-character-card-c92 .work-character-head-c92 h3{color:#fff!important;font-size:19px!important;margin:0 0 7px!important;line-height:1.25!important}
+#work-character-gallery .work-character-importance-c135 select{display:inline-block!important;max-width:155px!important;width:auto!important;min-width:0!important;background:#25263c!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #ffffff66!important;padding:5px 8px!important;font-size:12px!important}
+/* Contrôles de l'ancienne présentation : seul le sélecteur compact C135 est conservé. */
+#work-character-gallery .work-character-card-c92 .importance-select:not(.work-character-importance-c135 select),
+#work-character-gallery .work-character-card-c92 .character-importance-control,
+#work-character-gallery .work-character-card-c92 .work-character-tags-c92{display:none!important}
+</style>
 </head>
 <body>
 
@@ -4804,18 +4819,9 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     const objectifAnnee = objectifAnnuel.data?.objectif_mots;
     const pctAnnee = objectifAnnee ? Math.min(100, Math.round(motsAnnee/objectifAnnee*100)) : 0;
 
-    // C135 : progression par chapitres du Plan, pas par compteur de mots potentiellement obsolète.
-    const writingIdsC135=(enBureau.data||[]).map(o=>o.id);
-    const progressC135=new Map();
-    if(writingIdsC135.length){
-      const [pr,cr]=await Promise.all([
-        db().from('plans').select('oeuvre_id,statut').in('oeuvre_id',writingIdsC135),
-        db().from('chapitres').select('oeuvre_id,etat,nb_mots').in('oeuvre_id',writingIdsC135)
-      ]);
-      if(!pr.error)(pr.data||[]).forEach(x=>{const v=progressC135.get(x.oeuvre_id)||{total:0,done:0};v.total++;if(/^(terminé|termine|écrit|ecrit)$/i.test(String(x.statut||'').trim()))v.done++;progressC135.set(x.oeuvre_id,v)});
-      if(!cr.error)(cr.data||[]).forEach(x=>{if(progressC135.get(x.oeuvre_id)?.total)return;const v=progressC135.get(x.oeuvre_id)||{total:0,done:0};v.total++;if(Number(x.nb_mots||0)>0||/écrit|ecrit|relu|termin/i.test(x.etat||''))v.done++;progressC135.set(x.oeuvre_id,v)});
-    }
-    const writingCards=(enBureau.data||[]).slice(0,3).map(o=>{const cp=progressC135.get(o.id);const pct=cp?.total?Math.round(100*cp.done/cp.total):(o.objectif_mots?Math.min(100,Math.round((o.mots_ecrits||0)/o.objectif_mots*100)):0);return `<article class="home-writing-card" onclick="openOeuvreDetail('${o.id}')"><div class="home-writing-cover">${o.couverture?`<img src="${safeText(o.couverture)}">`:''}</div><div class="home-writing-body"><div class="home-writing-title">${safeText(o.titre)}</div><div class="home-writing-progress"><i style="width:${pct}%"></i></div><div class="home-writing-meta"><span>${safeText(o.statut_editorial_actuel||o.statut||'En écriture')}</span><b>${pct}%</b></div></div></article>`}).join('');
+    // C136 : progression éditoriale fondée uniquement sur les mots de la fiche œuvre.
+    // Les chapitres et le Plan ne servent jamais de dénominateur.
+    const writingCards=(enBureau.data||[]).slice(0,3).map(o=>{const objectif=Number(o.objectif_mots)||0;const ecrits=Number(o.mots_ecrits)||0;const pct=objectif>0?Math.max(0,Math.min(100,Math.round(ecrits/objectif*100))):0;return `<article class="home-writing-card" onclick="openOeuvreDetail('${o.id}')"><div class="home-writing-cover">${o.couverture?`<img src="${safeText(o.couverture)}">`:''}</div><div class="home-writing-body"><div class="home-writing-title">${safeText(o.titre)}</div><div class="home-writing-progress"><i style="width:${pct}%"></i></div><div class="home-writing-meta"><span>${safeText(o.statut_editorial_actuel||o.statut||'En écriture')}</span><b>${pct}%</b></div></div></article>`}).join('');
     const horizonYears=[...new Set([now.getFullYear(),now.getFullYear()+1,homeHorizonYearV576c36,...(horizonQuery.data||[]).map(o=>Number(o.horizon_annee)).filter(Boolean)])].sort((a,b)=>a-b);
     const horizonCards=(horizonQuery.data||[]).map(o=>{
       const status=o.statut_editorial_actuel||o.statut||'Projet';
