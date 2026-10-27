@@ -10229,6 +10229,45 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   async function renderOeuvreRelectureSuiviV42(zone,relecture){const [{data:chaps},{data:states},{data:checks}]=await Promise.all([db().from('chapitres').select('*').eq('oeuvre_id',currentOeuvreId).order('ordre'),db().from('relecture_chapitres').select('*').eq('relecture_id',relecture.id),db().from('relecture_checklist').select('*').eq('relecture_id',relecture.id).order('ordre')]);relectureChapitres=chaps||[];const sm=Object.fromEntries((states||[]).map(x=>[x.chapitre_id,x])),cm={};(checks||[]).forEach(x=>(cm[x.chapitre_id]??=[]).push(x));const rows=(chaps||[]).filter(c=>sm[c.id]||c109WrittenChapter(c));const start=rows.reduce((n,c)=>n+Number(sm[c.id]?.mots_depart??c.nb_mots??0),0),now=rows.reduce((n,c)=>n+Number(sm[c.id]?.mots_relecture??sm[c.id]?.mots_depart??c.nb_mots??0),0);const rowHtml=c=>{const st=sm[c.id]||{},a=Number(st.mots_depart??c.nb_mots??0),b=Number(st.mots_relecture??a),delta=b-a,cl=cm[c.id]||[];return `<tr><td><button class="relecture-chapter-link-v42" onclick="openRelectureDrawer('${c.id}','${safeText((c.titre||'Chapitre').replace(/'/g,"\\'"))}')">Ch. ${c.numero??c.ordre??'—'} · ${safeText(c.titre||'Sans titre')}</button></td><td>${a.toLocaleString('fr-FR')}</td><td><input type="number" style="width:100px" value="${b}" onchange="saveRelectureWordsC109('${st.id||''}','${c.id}',this.value)"></td><td>${delta>=0?'+':''}${delta.toLocaleString('fr-FR')}</td><td><select class="status-select" onchange="saveRelectureStatus('${c.id}',this.value)">${['à écrire','à relire','en cours','bloqué','relu'].map(x=>`<option ${x===(st.statut||'à relire')?'selected':''}>${x}</option>`).join('')}</select></td><td>${cl.length?`${cl.filter(x=>x.fait).length}/${cl.length}`:'—'}</td><td>${st.notes_html?'📝':'—'}</td></tr>`};zone.innerHTML=`${relectureSubnavV42()}<div class="panel"><div class="work-toolbar"><div><h2 style="margin:0">Suivi de correction</h2><p>${safeText(relecture.version_source||'V1')} : <strong>${start.toLocaleString('fr-FR')} mots</strong> → ${safeText(relecture.version_cible||'version relue')} : <strong>${now.toLocaleString('fr-FR')} mots</strong> · Δ <strong>${now-start>=0?'+':''}${(now-start).toLocaleString('fr-FR')}</strong></p></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px"><span class="tag">🩶 À écrire</span><span class="tag">🩷 À relire</span><span class="tag">🩵 En cours</span><span class="tag">❤️ Bloqué</span><span class="tag">💜 Relu</span></div><table class="ch-table"><thead><tr><th>Chapitre</th><th>Mots départ</th><th>Mots relecture</th><th>Δ mots</th><th>Statut</th><th>Checklist</th><th>Notes</th></tr></thead><tbody>${rows.map(rowHtml).join('')}</tbody></table></div>`}
   async function saveRelectureWordsC109(stateId,chapterId,value){let id=stateId;if(!id){const st=await ensureRelectureState(chapterId);id=st.id}await db().from('relecture_chapitres').update({mots_relecture:Number(value||0),updated_at:new Date().toISOString()}).eq('id',id)}
 
+
+  // C138 · Manuscrit à deux vues et circuit de relecture non destructif.
+  let manuscriptViewC138='jet';
+  function setManuscriptViewC138(view){manuscriptViewC138=view;renderOeuvreManuscrit(document.getElementById('oeuvre-tab-content'))}
+  function manuscriptTabsC138(){return `<div class="relecture-subtabs-v42" style="margin-bottom:16px"><button class="${manuscriptViewC138==='jet'?'active':''}" onclick="setManuscriptViewC138('jet')">✍️ Premier jet</button><button class="${manuscriptViewC138==='relu'?'active':''}" onclick="setManuscriptViewC138('relu')">📖 Version relue</button></div>`}
+  const _renderManuscriptC138=renderOeuvreManuscrit;
+  renderOeuvreManuscrit=async function(zone){
+    if(manuscriptViewC138==='jet'){
+      await _renderManuscriptC138(zone);
+      zone.insertAdjacentHTML('afterbegin',manuscriptTabsC138());
+      // Une entrée individuelle est disponible dans chaque ligne, via le bouton Notes.
+      return;
+    }
+    zone.innerHTML=manuscriptTabsC138()+'<div class="status-line">Chargement des chapitres relus…</div>';
+    const [{data:chapters,error:chapError},{data:campaigns,error:campaignError}]=await Promise.all([
+      db().from('chapitres').select('*').eq('oeuvre_id',currentOeuvreId).order('ordre'),
+      db().from('relectures').select('id').eq('oeuvre_id',currentOeuvreId).order('created_at',{ascending:false}).limit(1)
+    ]);
+    if(chapError||campaignError){zone.innerHTML=manuscriptTabsC138()+`<div class="empty">${safeText((chapError||campaignError).message)}</div>`;return}
+    const campaign=campaigns?.[0];
+    if(!campaign){zone.innerHTML=manuscriptTabsC138()+'<div class="empty">Aucune campagne de relecture n’a encore été démarrée pour cette œuvre.</div>';return}
+    const {data:states,error:statesError}=await db().from('relecture_chapitres').select('*').eq('relecture_id',campaign.id);
+    if(statesError){zone.innerHTML=manuscriptTabsC138()+`<div class="empty">${safeText(statesError.message)}</div>`;return}
+    const byId=new Map((states||[]).filter(st=>String(st.statut||'').toLowerCase()==='relu').map(st=>[String(st.chapitre_id),st]));
+    const rows=(chapters||[]).filter(ch=>byId.has(String(ch.id)));
+    const words=rows.reduce((sum,ch)=>sum+Number(byId.get(String(ch.id)).mots_relecture??ch.nb_mots??0),0);
+    const body=rows.map(ch=>{const st=byId.get(String(ch.id));const initial=Number(st.mots_depart??ch.nb_mots??0),revised=Number(st.mots_relecture??initial);return `<tr><td>${safeText(ch.numero??ch.ordre??'—')}</td><td><strong>${safeText(ch.titre||'Sans titre')}</strong></td><td>${initial.toLocaleString('fr-FR')}</td><td>${revised.toLocaleString('fr-FR')}</td><td>${(revised-initial)>=0?'+':''}${(revised-initial).toLocaleString('fr-FR')}</td><td><span class="etat-pill">Relu</span></td><td><button class="btn-secondary" onclick="openRelectureDrawer('${ch.id}','${safeText((ch.titre||'Chapitre').replace(/'/g,"\\'"))}')">Ouvrir les corrections</button></td></tr>`}).join('');
+    zone.innerHTML=manuscriptTabsC138()+`<div class="stat-cards-row" style="grid-template-columns:repeat(2,minmax(180px,1fr));max-width:600px"><div class="stat-card"><h3>Chapitres relus</h3><div class="stat-big">${rows.length}</div></div><div class="stat-card"><h3>Mots après relecture</h3><div class="stat-big">${words.toLocaleString('fr-FR')}</div></div></div><div class="panel"><table class="ch-table"><thead><tr><th>N°</th><th>Chapitre</th><th>Mots premier jet</th><th>Mots relus</th><th>Δ mots</th><th>État</th><th>Corrections</th></tr></thead><tbody>${body||'<tr><td colspan="7"><div class="empty">Aucun chapitre marqué « Relu » dans la campagne actuelle.</div></td></tr>'}</tbody></table></div>`;
+  };
+  // Les chapitres déjà écrits restent consultables dans Premier jet.
+  // La version relue se fonde exclusivement sur les états de relecture enregistrés.
+  const _saveRelectureStatusC138=saveRelectureStatus;
+  saveRelectureStatus=async function(chapterId,status){
+    await _saveRelectureStatusC138(chapterId,status);
+    // Les compteurs de la version relue seront recalculés au prochain affichage.
+  };
+  // L'ancienne détection ne reconnaissait pas « À relire » comme chapitre écrit.
+  c109WrittenChapter=function(ch){const st=String(ch?.etat||ch?.statut||'').toLowerCase();return Number(ch?.nb_mots||0)>0||/écrit|ecrit|rédig|redig|relu|termin|à relire|a relire/.test(st)};
+
 </script>
 
 <script id="c112-archives-patrimoine-js">
