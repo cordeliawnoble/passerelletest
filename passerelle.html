@@ -4824,9 +4824,23 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     const objectifAnnee = objectifAnnuel.data?.objectif_mots;
     const pctAnnee = objectifAnnee ? Math.min(100, Math.round(motsAnnee/objectifAnnee*100)) : 0;
 
-    // C136 : progression éditoriale fondée uniquement sur les mots de la fiche œuvre.
-    // Les chapitres et le Plan ne servent jamais de dénominateur.
-    const writingCards=(enBureau.data||[]).slice(0,3).map(o=>{const objectif=Number(o.objectif_mots)||0;const ecrits=Number(o.mots_ecrits)||0;const pct=objectif>0?Math.max(0,Math.min(100,Math.round(ecrits/objectif*100))):0;return `<article class="home-writing-card" onclick="openOeuvreDetail('${o.id}')"><div class="home-writing-cover">${o.couverture?`<img src="${safeText(o.couverture)}">`:''}</div><div class="home-writing-body"><div class="home-writing-title">${safeText(o.titre)}</div><div class="home-writing-progress"><i style="width:${pct}%"></i></div><div class="home-writing-meta"><span>${safeText(o.statut_editorial_actuel||o.statut||'En écriture')}</span><b>${pct}%</b></div></div></article>`}).join('');
+    // C139 : l'accueil tient compte des mots réellement enregistrés dans les chapitres.
+    // La fiche œuvre peut avoir un compteur mots_ecrits ancien, notamment après import.
+    // On ne modifie aucune donnée : on retient le total le plus élevé à l'affichage.
+    const homeChapterWords = new Map();
+    const homeWritingIds = (enBureau.data||[]).map(o=>o.id).filter(Boolean);
+    if(homeWritingIds.length){
+      const homeChapterResult = await db().from('chapitres').select('oeuvre_id,nb_mots,etat,statut').in('oeuvre_id',homeWritingIds);
+      if(!homeChapterResult.error){
+        (homeChapterResult.data||[]).forEach(c=>{
+          const n=Number(c.nb_mots)||0;
+          if(n>0)homeChapterWords.set(c.oeuvre_id,(homeChapterWords.get(c.oeuvre_id)||0)+n);
+        });
+      }else console.warn('C139 : compteur chapitres indisponible',homeChapterResult.error);
+    }
+    // C139 : objectif de mots de la fiche œuvre comme dénominateur ;
+    // mots enregistrés dans la fiche ou dans les chapitres comme numérateur.
+    const writingCards=(enBureau.data||[]).slice(0,3).map(o=>{const objectif=Number(o.objectif_mots)||0;const ecrits=Math.max(Number(o.mots_ecrits)||0,homeChapterWords.get(o.id)||0);const pct=objectif>0?Math.max(0,Math.min(100,Math.round(ecrits/objectif*100))):0;return `<article class="home-writing-card" onclick="openOeuvreDetail('${o.id}')"><div class="home-writing-cover">${o.couverture?`<img src="${safeText(o.couverture)}">`:''}</div><div class="home-writing-body"><div class="home-writing-title">${safeText(o.titre)}</div><div class="home-writing-progress"><i style="width:${pct}%"></i></div><div class="home-writing-meta"><span>${safeText(o.statut_editorial_actuel||o.statut||'En écriture')}</span><b>${pct}%</b></div></div></article>`}).join('');
     const horizonYears=[...new Set([now.getFullYear(),now.getFullYear()+1,homeHorizonYearV576c36,...(horizonQuery.data||[]).map(o=>Number(o.horizon_annee)).filter(Boolean)])].sort((a,b)=>a-b);
     const horizonCards=(horizonQuery.data||[]).map(o=>{
       const status=o.statut_editorial_actuel||o.statut||'Projet';
