@@ -8156,18 +8156,32 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     pendingPlanImportC60=rows;
     openDrawer('Importer le Plan',`<div class="plan-drawer-form-v576b"><div class="admin-work-note"><strong>${rows.length} entrée${rows.length>1?'s':''} détectée${rows.length>1?'s':''}</strong><br>${sources.length} source${sources.length>1?'s':''} reconnue${sources.length>1?'s':''} · import dans l’œuvre actuellement ouverte uniquement.</div><div style="max-height:52vh;overflow:auto;border:1px solid var(--border);border-radius:14px">${rows.slice(0,300).map((p,i)=>`<div style="padding:9px 12px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:54px 1fr;gap:8px"><small>Ch. ${safeText(p.numero_source||i+1)}</small><div><strong>${safeText(p.titre)}</strong><br><small>${safeText(p.acte||'Sans acte')}${p.pov_source?' · POV '+safeText(p.pov_source):' · POV —'} · ${safeText(p.statut||'À écrire')}</small></div></div>`).join('')}</div><div class="plan-drawer-actions-v576b"><button class="btn-secondary" onclick="pendingPlanImportC60=[];closeDrawer()">Annuler</button><button class="btn-primary" onclick="commitPlanImportC60()">Importer ${rows.length} entrée${rows.length>1?'s':''}</button></div></div>`);
   }
+  // C143 : confirmer uniquement les lignes effectivement visibles en base,
+  // puis quitter Gestion du plan pour afficher le résultat de l'import.
   async function commitPlanImportC60(){
     if(!pendingPlanImportC60.length||!currentOeuvreId)return;
+    const targetWork=currentOeuvreId;
+    const importedKeys=[];
     let done=0;
     for(const p of pendingPlanImportC60){
-      const payload={user_id:currentUser.id,oeuvre_id:currentOeuvreId,type:p.type||'Intrigue principale',titre:p.titre||'Sans titre',acte:p.acte||null,pov:p.pov_source||null,statut:p.statut||'À écrire',transformation:p.resume_source||p.transformation||null,ordre:Math.trunc(Number(p.ordre)||done+1),notion_source_key:p.source_key||`plan-import:${currentOeuvreId}:${done+1}`};
-      const {error}=await db().from('plans').upsert(payload,{onConflict:'user_id,notion_source_key'});
-      if(error){alert(`Import interrompu après ${done} entrée(s) : ${error.message}`);return}
+      const sourceKey=p.source_key||`plan-import:${targetWork}:${done+1}`;
+      const payload={user_id:currentUser.id,oeuvre_id:targetWork,type:p.type||'Intrigue principale',titre:p.titre||'Sans titre',acte:p.acte||null,pov:p.pov_source||null,statut:p.statut||'À écrire',transformation:p.resume_source||p.transformation||null,ordre:Math.trunc(Number(p.ordre)||done+1),notion_source_key:sourceKey};
+      const {data,error}=await db().from('plans').upsert(payload,{onConflict:'user_id,notion_source_key'}).select('id,oeuvre_id,notion_source_key');
+      if(error||!data?.length){alert(`Import interrompu après ${done} entrée(s) : ${error?.message||'enregistrement non confirmé'}`);return}
+      importedKeys.push(sourceKey);
       done++;
     }
-    pendingPlanImportC60=[];closeDrawer();
+    const {data:verified,error:verifyError}=await db().from('plans').select('id,oeuvre_id,notion_source_key').eq('oeuvre_id',targetWork).in('notion_source_key',importedKeys);
+    if(verifyError||!verified||new Set(verified.map(x=>x.notion_source_key)).size!==new Set(importedKeys).size){
+      alert('Import transmis, mais la vérification des chapitres enregistrés a échoué. Ne relance pas l’import immédiatement : '+(verifyError?.message||'certains chapitres sont introuvables dans cette œuvre.'));
+      return;
+    }
+    pendingPlanImportC60=[];
+    closeDrawer();
+    planTabC140='affichage';
+    plansView='table';
     await renderOeuvrePlans(document.getElementById('oeuvre-tab-content'));
-    alert(`✓ ${done} entrée${done>1?'s':''} de Plan importée${done>1?'s':''}.`);
+    alert(`✓ ${done} entrée${done>1?'s':''} vérifiée${done>1?'s':''} dans le Plan. Affichage ouvert.`);
   }
 
   function onPlansGroupByChange(){ plansGroupBy = document.getElementById('plans-groupby').value; setPlansView(plansView); }
