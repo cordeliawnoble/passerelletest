@@ -10248,7 +10248,40 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   async function startRelectureC109(){const source=document.getElementById('c109-rel-source').value,target=document.getElementById('c109-rel-target').value,{data:chs,error}=await db().from('chapitres').select('*').eq('oeuvre_id',currentOeuvreId).order('ordre');if(error)return alert(error.message);const rows=(chs||[]).filter(c109WrittenChapter);const cr=await db().from('relectures').insert({user_id:currentUser.id,oeuvre_id:currentOeuvreId,type:`${source} → ${target}`,statut:'en cours',date_debut:new Date().toISOString().slice(0,10),version_source:source,version_cible:target}).select().single();if(cr.error)return alert('Migration C109 requise : '+cr.error.message);const snaps=rows.map(c=>({user_id:currentUser.id,relecture_id:cr.data.id,chapitre_id:c.id,statut:'à relire',mots_depart:Number(c.nb_mots||0),mots_relecture:Number(c.nb_mots||0)}));if(snaps.length){const q=await db().from('relecture_chapitres').insert(snaps);if(q.error)return alert('Migration C109 requise : '+q.error.message)}renderOeuvreRelectureV2(document.getElementById('oeuvre-tab-content'))}
 
   // Suivi versionné avec delta de mots et légende canonique.
-  async function renderOeuvreRelectureSuiviV42(zone,relecture){const [{data:chaps},{data:states},{data:checks}]=await Promise.all([db().from('chapitres').select('*').eq('oeuvre_id',currentOeuvreId).order('ordre'),db().from('relecture_chapitres').select('*').eq('relecture_id',relecture.id),db().from('relecture_checklist').select('*').eq('relecture_id',relecture.id).order('ordre')]);relectureChapitres=chaps||[];const sm=Object.fromEntries((states||[]).map(x=>[x.chapitre_id,x])),cm={};(checks||[]).forEach(x=>(cm[x.chapitre_id]??=[]).push(x));const rows=(chaps||[]).filter(c=>sm[c.id]||c109WrittenChapter(c));const start=rows.reduce((n,c)=>n+Number(sm[c.id]?.mots_depart??c.nb_mots??0),0),now=rows.reduce((n,c)=>n+Number(sm[c.id]?.mots_relecture??sm[c.id]?.mots_depart??c.nb_mots??0),0);const rowHtml=c=>{const st=sm[c.id]||{},a=Number(st.mots_depart??c.nb_mots??0),b=Number(st.mots_relecture??a),delta=b-a,cl=cm[c.id]||[];return `<tr><td><button class="relecture-chapter-link-v42" onclick="openRelectureDrawer('${c.id}','${safeText((c.titre||'Chapitre').replace(/'/g,"\\'"))}')">Ch. ${c.numero??c.ordre??'—'} · ${safeText(c.titre||'Sans titre')}</button></td><td>${a.toLocaleString('fr-FR')}</td><td><input type="number" style="width:100px" value="${b}" onchange="saveRelectureWordsC109('${st.id||''}','${c.id}',this.value)"></td><td>${delta>=0?'+':''}${delta.toLocaleString('fr-FR')}</td><td><select class="status-select" onchange="saveRelectureStatus('${c.id}',this.value)">${['à écrire','à relire','en cours','bloqué','relu'].map(x=>`<option ${x===(st.statut||'à relire')?'selected':''}>${x}</option>`).join('')}</select></td><td>${cl.length?`${cl.filter(x=>x.fait).length}/${cl.length}`:'—'}</td><td>${st.notes_html?'📝':'—'}</td></tr>`};zone.innerHTML=`${relectureSubnavV42()}<div class="panel"><div class="work-toolbar"><div><h2 style="margin:0">Suivi de correction</h2><p>${safeText(relecture.version_source||'V1')} : <strong>${start.toLocaleString('fr-FR')} mots</strong> → ${safeText(relecture.version_cible||'version relue')} : <strong>${now.toLocaleString('fr-FR')} mots</strong> · Δ <strong>${now-start>=0?'+':''}${(now-start).toLocaleString('fr-FR')}</strong></p></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px"><span class="tag">🩶 À écrire</span><span class="tag">🩷 À relire</span><span class="tag">🩵 En cours</span><span class="tag">❤️ Bloqué</span><span class="tag">💜 Relu</span></div><table class="ch-table"><thead><tr><th>Chapitre</th><th>Mots départ</th><th>Mots relecture</th><th>Δ mots</th><th>Statut</th><th>Checklist</th><th>Notes</th></tr></thead><tbody>${rows.map(rowHtml).join('')}</tbody></table></div>`}
+  // C142 : checklist visible dans le suivi ; mots déplacés vers Manuscrit / Version relue.
+  async function renderOeuvreRelectureSuiviV42(zone,relecture){
+    const [cr,sr,kr]=await Promise.all([
+      db().from('chapitres').select('*').eq('oeuvre_id',currentOeuvreId).order('ordre'),
+      db().from('relecture_chapitres').select('*').eq('relecture_id',relecture.id),
+      db().from('relecture_checklist').select('*').eq('relecture_id',relecture.id).order('ordre')]);
+    const err=cr.error||sr.error||kr.error;
+    if(err){zone.innerHTML=relectureSubnavV42()+`<div class="empty">${safeText(err.message)}</div>`;return}
+    const chapters=cr.data||[],states=sr.data||[],checks=kr.data||[];
+    relectureChapitres=chapters;
+    const sm=new Map(states.map(x=>[String(x.chapitre_id),x]));
+    const cm={};checks.forEach(x=>(cm[String(x.chapitre_id)]??=[]).push(x));
+    const rows=chapters.filter(c=>sm.has(String(c.id))||c109WrittenChapter(c));
+    const relus=states.filter(x=>String(x.statut||'').toLowerCase()==='relu').length;
+    const cards=rows.map(c=>{
+      const st=sm.get(String(c.id))||{},cl=cm[String(c.id)]||[],done=cl.filter(x=>x.fait).length;
+      const title=safeText(c.titre||'Chapitre '+(c.numero??c.ordre??''));
+      return `<article class="panel" style="margin-bottom:12px;padding:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <button class="relecture-chapter-link-v42" onclick="openRelectureDrawer('${c.id}',this.textContent)">${title}</button>
+          <select class="status-select" onchange="saveRelectureStatus('${c.id}',this.value)">${['à écrire','à relire','en cours','bloqué','relu'].map(x=>`<option ${x===(st.statut||'à relire')?'selected':''}>${x}</option>`).join('')}</select>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);margin:10px 0 6px">Checklist · ${done}/${cl.length}</div>
+        ${cl.length?cl.map(x=>`<label class="check-item" style="display:flex;align-items:flex-start;gap:8px;margin:5px 0"><input type="checkbox" ${x.fait?'checked':''} onchange="toggleCheckC142('${x.id}',this.checked)"><span>${safeText(x.libelle||'Contrôle sans intitulé')}</span></label>`).join(''):'<p style="font-size:12px;color:var(--text-dim)">Aucun contrôle pour ce chapitre.</p>'}
+        <div style="font-size:12px;color:var(--text-dim);margin-top:10px">Notes accessibles en ouvrant le chapitre.</div>
+      </article>`;
+    }).join('');
+    zone.innerHTML=relectureSubnavV42()+`<div class="work-toolbar"><div><h2>Suivi de correction</h2><p>${relus} chapitre(s) relu(s) sur ${states.length} suivi(s)</p></div></div>${cards||'<div class="empty">Aucun chapitre à suivre.</div>'}`;
+  }
+  async function toggleCheckC142(id,fait){
+    const {error}=await db().from('relecture_checklist').update({fait}).eq('id',id);
+    if(error)return alert('Checklist non enregistrée : '+error.message);
+    renderOeuvreRelectureV2(document.getElementById('oeuvre-tab-content'));
+  }
   async function saveRelectureWordsC109(stateId,chapterId,value){let id=stateId;if(!id){const st=await ensureRelectureState(chapterId);id=st.id}await db().from('relecture_chapitres').update({mots_relecture:Number(value||0),updated_at:new Date().toISOString()}).eq('id',id)}
 
 
@@ -10278,9 +10311,17 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     const byId=new Map((states||[]).filter(st=>String(st.statut||'').toLowerCase()==='relu').map(st=>[String(st.chapitre_id),st]));
     const rows=(chapters||[]).filter(ch=>byId.has(String(ch.id)));
     const words=rows.reduce((sum,ch)=>sum+Number(byId.get(String(ch.id)).mots_relecture??ch.nb_mots??0),0);
-    const body=rows.map(ch=>{const st=byId.get(String(ch.id));const initial=Number(st.mots_depart??ch.nb_mots??0),revised=Number(st.mots_relecture??initial);return `<tr><td>${safeText(ch.numero??ch.ordre??'—')}</td><td><strong>${safeText(ch.titre||'Sans titre')}</strong></td><td>${initial.toLocaleString('fr-FR')}</td><td>${revised.toLocaleString('fr-FR')}</td><td>${(revised-initial)>=0?'+':''}${(revised-initial).toLocaleString('fr-FR')}</td><td><span class="etat-pill">Relu</span></td><td><button class="btn-secondary" onclick="openRelectureDrawer('${ch.id}','${safeText((ch.titre||'Chapitre').replace(/'/g,"\\'"))}')">Ouvrir les corrections</button></td></tr>`}).join('');
+    const body=rows.map(ch=>{const st=byId.get(String(ch.id));const initial=Number(st.mots_depart??ch.nb_mots??0),revised=Number(st.mots_relecture??initial);return `<tr><td>${safeText(ch.numero??ch.ordre??'—')}</td><td><strong>${safeText(ch.titre||'Sans titre')}</strong></td><td><input type="number" min="0" style="width:105px" value="${initial}" aria-label="Mots du premier jet" onchange="saveRevisedWordsC142('${st.id}','mots_depart',this.value)"></td><td><input type="number" min="0" style="width:105px" value="${revised}" aria-label="Mots après relecture" onchange="saveRevisedWordsC142('${st.id}','mots_relecture',this.value)"></td><td>${(revised-initial)>=0?'+':''}${(revised-initial).toLocaleString('fr-FR')}</td><td><span class="etat-pill">Relu</span></td><td><button class="btn-secondary" onclick="openRelectureDrawer('${ch.id}','${safeText((ch.titre||'Chapitre').replace(/'/g,"\\'"))}')">Ouvrir les corrections</button></td></tr>`}).join('');
     zone.innerHTML=manuscriptTabsC138()+`<div class="stat-cards-row" style="grid-template-columns:repeat(2,minmax(180px,1fr));max-width:600px"><div class="stat-card"><h3>Chapitres relus</h3><div class="stat-big">${rows.length}</div></div><div class="stat-card"><h3>Mots après relecture</h3><div class="stat-big">${words.toLocaleString('fr-FR')}</div></div></div><div class="panel"><table class="ch-table"><thead><tr><th>N°</th><th>Chapitre</th><th>Mots premier jet</th><th>Mots relus</th><th>Δ mots</th><th>État</th><th>Corrections</th></tr></thead><tbody>${body||'<tr><td colspan="7"><div class="empty">Aucun chapitre marqué « Relu » dans la campagne actuelle.</div></td></tr>'}</tbody></table></div>`;
   };
+  async function saveRevisedWordsC142(id,field,value){
+    if(!['mots_depart','mots_relecture'].includes(field))return;
+    const n=Number(value);
+    if(!Number.isSafeInteger(n)||n<0)return alert('Nombre de mots invalide.');
+    const {data,error}=await db().from('relecture_chapitres').update({[field]:n,updated_at:new Date().toISOString()}).eq('id',id).select('id');
+    if(error||!data?.length)return alert('Enregistrement impossible : '+(error?.message||'aucune ligne modifiée'));
+    renderOeuvreManuscrit(document.getElementById('oeuvre-tab-content'));
+  }
   // Les chapitres déjà écrits restent consultables dans Premier jet.
   // La version relue se fonde exclusivement sur les états de relecture enregistrés.
   const _saveRelectureStatusC138=saveRelectureStatus;
@@ -10330,25 +10371,10 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
       if(upd.error||!upd.data?.length){errors.push(`${plan.titre||plan.nom||plan.id}: ${upd.error?.message||'non enregistré'}`);continue}
       changed.push(plan);
     }
-    // Un plan terminé est une étape de rédaction, mais on ne crée jamais de texte fictif.
-    // On synchronise la présence de chapitres par numéro lorsqu'il existe une référence claire.
-    if(status==='Terminé'&&changed.length){
-      const res=await db().from('chapitres').select('id,numero,ordre,etat,statut,titre').eq('oeuvre_id',currentOeuvreId);
-      if(res.error){errors.push('Manuscrit : '+res.error.message)}
-      else{
-        for(const plan of changed){
-          const n=Number(plan.numero??plan.numero_chapitre??plan.ordre);
-          if(!Number.isFinite(n)||n<=0)continue;
-          const match=(res.data||[]).find(c=>Number(c.numero??c.ordre)===n);
-          if(match){
-            const st=String(match.etat||match.statut||'').toLowerCase();
-            if(!/à relire|a relire|relu/.test(st)){
-              const r=await db().from('chapitres').update({etat:'Écrit'}).eq('id',match.id).eq('oeuvre_id',currentOeuvreId);
-              if(r.error)errors.push(`Chapitre ${n} : ${r.error.message}`);
-            }
-          }
-        }
-      }
+    // C142 : même synchronisation que le traitement individuel.
+    if(status==='Terminé')for(const plan of changed){
+      const sync=await syncCompletedPlanC135(plan);
+      if(!sync.ok)errors.push(`${plan.titre||plan.id}: ${sync.message}`);
     }
     selectedPlanIdsC61=new Set();await renderOeuvrePlans(document.getElementById('oeuvre-tab-content'));
     alert(`${changed.length}/${ids.length} élément(s) du Plan enregistrés.${errors.length?'\n\nÀ vérifier :\n'+errors.slice(0,8).join('\n'):''}`);
