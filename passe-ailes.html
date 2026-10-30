@@ -1272,7 +1272,7 @@ window.pa15AddIdea=()=>modal('Nouvelle idée',`<label>Idée<textarea id="idea" r
 window.pa15DeleteIdea=i=>confirmBox('Retirer cette idée','Supprimer cette idée ?',()=>{d().marketingIdeas.splice(i,1);save();renderDossierTab('marketing')});
 function phaseRow(p={}){let labels=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],old=Array.isArray(p.days)?p.days:String(p.days||'').toLowerCase().replace(/\bet\b/g,',').replace(/\./g,'').split(/[,;]+/).map(x=>x.trim()),aliases=[['lun','lundi','1'],['mar','mardi','2'],['mer','mercredi','3'],['jeu','jeudi','4'],['ven','vendredi','5'],['sam','samedi','6'],['dim','dimanche','0','7']],checked=aliases.map(a=>old.some(v=>a.includes(String(v))));return `<div class="pa15-phase pa15-form"><label>Début<input type="date" class="p-start" value="${E(p.start||'')}"></label><label>Fin<input type="date" class="p-end" value="${E(p.end||'')}"></label><label>Chapitres par semaine<input type="number" class="p-frequency" min="1" max="7" value="${E(p.frequency||1)}"></label><div class="wide"><b>Jours de publication (obligatoires)</b><div class="pa16-days">${labels.map((v,i)=>`<label><input type="checkbox" class="p-day" value="${i===6?0:i+1}" ${checked[i]?'checked':''}><span>${v}</span></label>`).join('')}</div></div><button type="button" class="btn sm" onclick="this.closest('.pa15-phase').remove()">Retirer cette phase</button></div>`}
 window.pa15AddPhase=()=>document.getElementById('pa15-phase-list')?.insertAdjacentHTML('beforeend',phaseRow());
-window.pa15Campaign=(cid)=>{let c=camp().find(x=>String(x.id)===String(cid)),fresh=!c;modal(fresh?'Créer une campagne':'Fiche de campagne · '+c.name,`<div class="pa15-form"><label class="wide">Nom de la campagne<input id="c-name" value="${E(c?.name||'')}"></label><label>Type<select id="c-type">${['Publication','Promotion'].map(t=>`<option ${c?.type===t?'selected':''}>${t}</option>`).join('')}</select></label><label>Statut<select id="c-status">${['À préparer','Publication en cours','En pause','Terminée'].map(t=>`<option ${c?.status===t?'selected':''}>${t}</option>`).join('')}</select></label><label>Début<input type="date" id="c-start" value="${E(c?.start||'')}"></label><label>Fin<input type="date" id="c-end" value="${E(c?.end||'')}"></label><label class="wide">Objectif / offre<textarea id="c-goal" rows="3">${E(c?.goal||'')}</textarea></label></div><div class="pa15-detail"><div class="pa15-head"><h3>🗓️ Phases de publication</h3><button class="btn sm" onclick="pa15AddPhase()">+ Phase</button></div><p class="pa15-muted">Chaque phase possède son rythme. Les dates du planning éditorial ne sont jamais modifiées automatiquement.</p><div id="pa15-phase-list">${(c?.phases||[]).map(phaseRow).join('')}</div></div>`,r=>{let name=r.querySelector('#c-name').value.trim();if(!name){pa16Error(r,'Donne un nom à la campagne avant de l’enregistrer.');return false}let phases=[...r.querySelectorAll('.pa15-phase')].map(p=>({start:p.querySelector('.p-start').value,end:p.querySelector('.p-end').value,frequency:Number(p.querySelector('.p-frequency').value),days:[...p.querySelectorAll('.p-day:checked')].map(x=>Number(x.value))}));let invalid=phases.findIndex(p=>!p.start||!p.end||p.end<p.start||p.frequency<1||p.days.length!==p.frequency);if(invalid!==-1){let p=phases[invalid],msg=(!p.start||!p.end||p.end<p.start)?'Les dates de début et de fin doivent être valides.':`Tu as indiqué ${p.frequency} chapitre(s) par semaine, mais coché ${p.days.length} jour(s). Sélectionne exactement ${p.frequency} jours.`;pa16Error(r,`Phase ${invalid+1} : ${msg}`);let bad=r.querySelectorAll('.pa15-phase')[invalid];bad?.classList.add('pa17-invalid');bad?.scrollIntoView({behavior:'smooth',block:'center'});return false}let o=c||{id:unique(),workId:id()};Object.assign(o,{name,type:r.querySelector('#c-type').value,status:r.querySelector('#c-status').value,start:r.querySelector('#c-start').value,end:r.querySelector('#c-end').value,goal:r.querySelector('#c-goal').value,phases});if(fresh)state.campaigns.push(o);pa16SyncCampaign(o);save();renderDossierTab('marketing')})};
+window.pa15Campaign=(cid)=>{let c=camp().find(x=>String(x.id)===String(cid)),fresh=!c;modal(fresh?'Créer une campagne':'Fiche de campagne · '+c.name,`<div class="pa15-form"><label class="wide">Nom de la campagne<input id="c-name" value="${E(c?.name||'')}"></label><label>Type<select id="c-type">${['Publication','Promotion'].map(t=>`<option ${c?.type===t?'selected':''}>${t}</option>`).join('')}</select></label><label>Statut<select id="c-status">${['À préparer','Publication en cours','En pause','Terminée'].map(t=>`<option ${c?.status===t?'selected':''}>${t}</option>`).join('')}</select></label><label>Début<input type="date" id="c-start" value="${E(c?.start||'')}"></label><label>Fin<input type="date" id="c-end" value="${E(c?.end||'')}"></label><label class="wide">Objectif / offre<textarea id="c-goal" rows="3">${E(c?.goal||'')}</textarea></label></div><div class="pa15-detail"><div class="pa15-head"><h3>🗓️ Phases de publication</h3><button class="btn sm" onclick="pa15AddPhase()">+ Phase</button></div><p class="pa15-muted">Chaque phase possède son rythme. Les dates du planning éditorial ne sont jamais modifiées automatiquement.</p><div id="pa15-phase-list">${(c?.phases||[]).map(phaseRow).join('')}</div></div>${c?`<div class="pa22-delete-line"><button type="button" class="btn danger" onclick="pa22DeleteCampaign(\'${E(c.id)}\')">Supprimer cette campagne</button></div>`:''}`,r=>{let name=r.querySelector('#c-name').value.trim();if(!name){pa16Error(r,'Donne un nom à la campagne avant de l’enregistrer.');return false}let phases=[...r.querySelectorAll('.pa15-phase')].map(p=>({start:p.querySelector('.p-start').value,end:p.querySelector('.p-end').value,frequency:Number(p.querySelector('.p-frequency').value),days:[...p.querySelectorAll('.p-day:checked')].map(x=>Number(x.value))}));let invalid=phases.findIndex(p=>!p.start||!p.end||p.end<p.start||p.frequency<1||p.days.length!==p.frequency);if(invalid!==-1){let p=phases[invalid],msg=(!p.start||!p.end||p.end<p.start)?'Les dates de début et de fin doivent être valides.':`Tu as indiqué ${p.frequency} chapitre(s) par semaine, mais coché ${p.days.length} jour(s). Sélectionne exactement ${p.frequency} jours.`;pa16Error(r,`Phase ${invalid+1} : ${msg}`);let bad=r.querySelectorAll('.pa15-phase')[invalid];bad?.classList.add('pa17-invalid');bad?.scrollIntoView({behavior:'smooth',block:'center'});return false}let o=c||{id:unique(),workId:id()};Object.assign(o,{name,type:r.querySelector('#c-type').value,status:r.querySelector('#c-status').value,start:r.querySelector('#c-start').value,end:r.querySelector('#c-end').value,goal:r.querySelector('#c-goal').value,phases});if(fresh)state.campaigns.push(o);pa16SyncCampaign(o);save();renderDossierTab('marketing')})};
 // Override only the reviewed work-dossier tabs; preserve other application screens.
 const previous=renderDossierTab;renderDossierTab=function(which){if(!currentDossier||!document.getElementById('dossier-page-zone'))return previous(which);if(!['trajectory','diffusions','marketing','documents'].includes(which))return previous(which);document.querySelectorAll('#dossier-page-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.dtab===which));try{document.getElementById('dossier-page-zone').innerHTML=which==='trajectory'?trajectory():which==='diffusions'?nav('diffusions',[['edition','Édition'],['diffusion','Diffusion']])+(tab.diffusions==='edition'?editorial():diffusion()):which==='marketing'?marketing():documents()}catch(e){console.error('V15 dossier',e);return previous(which)}};
 // Replace native dialogs on dossier-only controls without altering unrelated modules.
@@ -1296,7 +1296,33 @@ window.pa16RemoveAction=(id)=>{let suggested=String(id).startsWith('suggestion-'
 window.pa16Channels=()=>{let list=ds().readingChannels||[];modal('🔗 Canaux de lecture',`<p>Ajoute les plateformes sur lesquelles l’œuvre est accessible. Ces liens restent propres à cette œuvre.</p><div id="pa16-channels">${list.map(row).join('')}</div><button type="button" class="btn sm" id="pa16-add-channel">+ Canal de lecture</button>`,r=>{let rows=[...r.querySelectorAll('.pa16-channel')].map(el=>({name:el.querySelector('.ch-name').value.trim(),url:el.querySelector('.ch-url').value.trim(),access:el.querySelector('.ch-access').value,status:el.querySelector('.ch-status').value})).filter(x=>x.name||x.url);if(rows.some(x=>!x.name||(x.url&&!/^https?:\/\//i.test(x.url)))){pa16Error(r,'Chaque canal doit avoir un nom et une adresse valide (https://…) si elle est renseignée.');return false}ds().readingChannels=rows;let platforms=ds().diffusions?.find(x=>/plateforme|support/i.test(x.name));if(platforms){platforms.value=rows.map(x=>x.name).join(' · ');platforms.status=rows.length?'Configuré':'À configurer'}persist();renderDossierTab('diffusions')});document.getElementById('pa16-add-channel').onclick=()=>document.getElementById('pa16-channels').insertAdjacentHTML('beforeend',row({}))};
 function row(x){return `<div class="pa16-channel"><label>Plateforme<input class="ch-name" value="${safe(x.name||'')}" placeholder="Site de l’autrice"></label><label>Lien de lecture<input class="ch-url" type="url" value="${safe(x.url||'')}" placeholder="https://…"></label><label>Accès<select class="ch-access">${['Gratuit','Payant','Abonnement'].map(v=>`<option ${x.access===v?'selected':''}>${v}</option>`).join('')}</select></label><label>Statut<select class="ch-status">${['Actif','À venir','Suspendu'].map(v=>`<option ${x.status===v?'selected':''}>${v}</option>`).join('')}</select></label><button type="button" class="btn sm" onclick="this.closest('.pa16-channel').remove()">Retirer</button></div>`}
 // Campaign publication occurrences: generated only for publication campaigns, never overwrite other events.
-window.pa16SyncCampaign=(c)=>{if(!c||/promo/i.test(c.type||''))return;let weekdays=new Set(),dates=[];for(let phase of c.phases||[]){let days=Array.isArray(phase.days)?phase.days.map(Number):[];if(!phase.start||!phase.end||days.length!==Number(phase.frequency))continue;let date=new Date(phase.start+'T12:00:00'),end=new Date(phase.end+'T12:00:00');for(let n=0;date<=end&&n<400;n++,date.setDate(date.getDate()+1)){if(days.includes(date.getDay()))dates.push(date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0'))}}dates=[...new Set(dates)].sort();let existing=state.events.filter(e=>String(e.campaignId)===String(c.id)&&e.generatedBy==='pa16');let stable=new Map(existing.map(e=>[e.date,e]));let kept=state.events.filter(e=>!(String(e.campaignId)===String(c.id)&&e.generatedBy==='pa16'));let work=proWorks.find(w=>String(w.oeuvre_id)===String(c.workId));let startNumber=Math.max(1,Number(c.startChapter||1));let today=new Date().toISOString().slice(0,10);for(let i=0;i<dates.length;i++){let date=dates[i],prev=stable.get(date);let status=/publication en cours|termin/i.test(c.status||'')&&date<=today?'Publié':'À venir';kept.push({...prev,id:prev?.id||('PA16-'+c.id+'-'+date),campaignId:c.id,workId:c.workId,generatedBy:'pa16',source:'marketing',channel:'Site',date,title:prev?.title||((work?.titre||c.name)+' · Chapitre '+(startNumber+i)),status:prev?.status==='Publié'?'Publié':status})}state.events=kept};
+window.pa16SyncCampaign=(c)=>{
+ if(!c||/promo/i.test(c.type||''))return;
+ const dates=[];
+ for(const phase of c.phases||[]){
+  const days=Array.isArray(phase.days)?phase.days.map(Number):[];
+  if(!phase.start||!phase.end||days.length!==Number(phase.frequency))continue;
+  const d=new Date(phase.start+'T12:00:00'),end=new Date(phase.end+'T12:00:00');
+  for(let n=0;d<=end&&n<400;n++,d.setDate(d.getDate()+1))
+   if(days.includes(d.getDay()))dates.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+ }
+ const ordered=[...new Set(dates)].sort();
+ const generated=state.events.filter(e=>String(e.campaignId)===String(c.id)&&e.generatedBy==='pa16');
+ const previous=new Map(generated.map(e=>[e.date,e]));
+ const kept=state.events.filter(e=>!(String(e.campaignId)===String(c.id)&&e.generatedBy==='pa16'));
+ const work=proWorks.find(w=>String(w.oeuvre_id)===String(c.workId));
+ const first=Math.max(1,Number(c.startChapter)||1);
+ const today=new Date().toISOString().slice(0,10);
+ ordered.forEach((date,i)=>{
+  const old=previous.get(date),number=first+i;
+  const generatedTitle=(work?.titre||c.name)+' · Chapitre '+number;
+  const oldAutoTitle=old?.title&&/ · Chapitre \d+$/.test(old.title);
+  const title=old&&!oldAutoTitle&&old.title?old.title:generatedTitle;
+  const status=/publication en cours|termin/i.test(c.status||'')&&date<=today?'Publié':'À venir';
+  kept.push({...old,id:old?.id||('PA16-'+c.id+'-'+date),campaignId:c.id,workId:c.workId,generatedBy:'pa16',source:'marketing',channel:old?.channel||'Site',date,title,status:old?.status==='Publié'?'Publié':status});
+ });
+ state.events=kept;
+};
 // Ensure older saved campaigns with phases become visible without overwriting existing editorial dates.
 window.pa16RefreshCampaigns=()=>{for(let c of state.campaigns||[])if(c.phases?.length){let daysOk=c.phases.every(p=>Array.isArray(p.days)&&p.days.length===Number(p.frequency));if(daysOk)pa16SyncCampaign(c)}persist()};
 // Add the new channel manager to the work's diffusion panel, without changing its other fields.
@@ -1454,12 +1480,12 @@ refreshPasserelleWorksV5=async function(){
    const o=byId.get(String(w.oeuvre_id));if(!o)return w;
    const patch={};
    const mapping={
-    business_id:['identifiant_oeuvre','identifiant_metier','code_oeuvre','reference_oeuvre','code_unique','identifiant','reference','code'],
-    blurb:['quatrieme_de_couverture','quatrieme_couverture','quatrieme_extrait','texte_quatrieme','resume_public','resume_extrait'],
+    business_id:['passerelle_id','identifiant_oeuvre','identifiant_metier','code_oeuvre','reference_oeuvre','code_unique','identifiant','reference','code'],
+    blurb:['resume_publication','resume_commercial','quatrieme_de_couverture','quatrieme_couverture','quatrieme_extrait','texte_quatrieme','resume_public','resume_extrait'],
     resume:['resume','résumé','synopsis','description'],
     saga:['nom_saga','saga','saga_name'],
-    genres:['genres','genre_principal','genre'],
-    keywords:['mots_cles','keywords','tags'],
+    genres:['genres_mots_cles','genres','genre_principal','genre'],
+    keywords:['tropes_mots_cles','mots_cles','keywords','tags'],
     avertissements:['avertissements','content_warnings'],
     nb_mots:['nb_mots','word_count','nombre_mots']
    };
@@ -1468,6 +1494,32 @@ refreshPasserelleWorksV5=async function(){
    return {...w,...patch,passerelle_id:o.id};
   });
  }catch(e){console.warn('V19 : enrichissement Passerelle indisponible, valeurs conservées.',e)}
+};
+// V21: resolve relational saga labels from Passerelle, without altering source records.
+const refreshBeforeV21=refreshPasserelleWorksV5;
+refreshPasserelleWorksV5=async function(){
+ await refreshBeforeV21();
+ try{
+  const ids=proWorks.map(w=>w.oeuvre_id).filter(Boolean);
+  if(!ids.length)return;
+  const [works,sagas]=await Promise.all([
+   db().from('oeuvres').select('id,passerelle_id,saga_id,genre,genres_mots_cles,resume,pitch,a_propos').in('id',ids),
+   db().from('sagas').select('id,nom')
+  ]);
+  if(works.error)throw works.error;
+  const byId=new Map((works.data||[]).map(o=>[String(o.id),o]));
+  const sagaNames=new Map((sagas.data||[]).map(o=>[String(o.id),o.nom]));
+  proWorks=proWorks.map(w=>{
+   const o=byId.get(String(w.oeuvre_id));if(!o)return w;
+   const code=String(o.passerelle_id||'').trim();
+   return {...w,
+    business_id:code||w.business_id,
+    saga:(o.saga_id&&sagaNames.get(String(o.saga_id)))||w.saga,
+    genres:o.genres_mots_cles||o.genre||w.genres,
+    resume:o.resume||w.resume,
+    blurb:w.blurb||o.resume||o.pitch||o.a_propos||''};
+  });
+ }catch(e){console.warn('V21 : enrichissement relationnel non disponible',e)}
 };
 const oldRender=renderDossierTab;
 renderDossierTab=function(tab){
@@ -1557,11 +1609,14 @@ function showModal(title,fields,onSave){document.getElementById('pa20-modal')?.r
 }
 function renderItems(kind){const type=routeType(),tpl=templates[type]||templates.online,seed=tpl[kind]||[],r=records(kind),rows=r.items,existing=new Set(rows.map(x=>x.seed));let out='<div class="card"><div class="pa15-head"><div><h2>'+(kind==='edit'?'📋 Actions éditoriales':type==='selfpub'?'📦 Diffusion & vente':'📖 Diffusion en ligne')+'</h2><p class="pa15-muted">Suggestions propres à cette trajectoire. Rien n’est ajouté automatiquement.</p></div><button class="btn primary" onclick="pa20Edit(\''+kind+'\')">+ Action</button></div>';
  const groups=[...new Set(seed.map(s=>s[2]||'Actions'))];
+ const pendingCount=seed.filter((x,i)=>!existing.has(i)&&!r.dismissed.includes(i)).length;
+ if(pendingCount)out+='<details class="pa21-suggestions"><summary>💡 Suggestions d’actions ('+pendingCount+') <span>Ouvrir / fermer</span></summary>';
  for(const group of groups){const pending=seed.map((s,i)=>({s,i})).filter(x=>(x.s[2]||'Actions')===group&&!existing.has(x.i)&&!r.dismissed.includes(x.i));if(!pending.length)continue;
  out+='<h4 class="pa20-group">'+H(group)+'</h4>';
  for(const {s,i} of pending)out+='<div class="pa20-action"><span class="pa20-num">'+(i+1)+'</span><div><b>'+H(s[0])+'</b>'+(s[1]?'<small>'+H(s[1])+'</small>':'')+(s[3]?'<small>Facultative</small>':'')+'</div><span class="pa15-chip gray">Suggestion</span><div class="pa15-actions"><button class="btn sm" onclick="pa20Edit(\''+kind+'\',null,'+i+')">Ajouter / adapter</button><button class="btn sm" onclick="pa20Dismiss(\''+kind+'\','+i+')">Masquer</button></div></div>';
  }
- if(rows.length)out+='<h4 class="pa20-group">Mes actions</h4>';
+ if(pendingCount)out+='</details>';
+ out+='<h4 class="pa20-group">Mes actions ('+rows.length+')</h4>'; 
  for(const item of rows)out+='<div class="pa20-action"><input aria-label="Terminer" type="checkbox" '+(item.done?'checked':'')+' onchange="pa20Done(\''+kind+'\',\''+H(item.id)+'\',this.checked)"><div><b>'+H(item.title)+'</b>'+(item.description?'<small>'+H(item.description)+'</small>':'')+(item.date?'<small>Échéance : '+H(item.date)+'</small>':'')+'</div><span class="pa15-chip '+(item.done?'ok':'gray')+'">'+(item.done?'Terminé':'À faire')+'</span><div class="pa15-actions"><button class="btn sm" onclick="pa20Edit(\''+kind+'\',\''+H(item.id)+'\')">Modifier</button><button class="btn sm" onclick="pa20Delete(\''+kind+'\',\''+H(item.id)+'\')">Retirer</button></div></div>';
  out+='</div>';return out;
 }
@@ -1595,4 +1650,175 @@ renderDossierTab=function(tab){if(tab!=='diffusions'||!currentDossier||!document
  document.getElementById('dossier-page-zone').innerHTML=tabs+body;
 };
 })();</script>
+<style id="pa-v21-style">
+.pa21-suggestions{margin:16px 0;border:1px solid #e7d9ef;border-radius:14px;padding:12px 16px;background:#fcf9fe}
+.pa21-suggestions>summary{cursor:pointer;font-weight:700;color:#78518e;list-style-position:inside;padding:5px 0}
+.pa21-suggestions>summary span{font-size:12px;font-weight:400;color:#92839b;float:right}
+.pa21-archive-delete{margin-left:12px;color:#a63f58!important;border-color:#f1cbd4!important}
+</style>
+<script id="pa-v21-cleanup">
+(function(){'use strict';
+const original=renderDossierTab;
+function htmlSafe(v){return esc(String(v??''))}
+window.pa21DeleteArchive=function(routeId){
+ const d=dossierState(currentDossier),l=d.editorialLife||{},r=(l.routes||[]).find(x=>String(x.id)===String(routeId));
+ if(!r||r.status!=='archived'||String(l.activeRouteId)===String(routeId))return;
+ const snapshots=(l.archives||[]).filter(a=>String(a.routeId)===String(routeId));
+ const overlay=document.createElement('div');overlay.className='pa14-overlay';overlay.id='pa21-delete-overlay';
+ overlay.innerHTML='<div class="pa14-modal" role="dialog" aria-modal="true"><h3>Supprimer cette trajectoire archivée ?</h3><p><b>'+htmlSafe(r.label)+'</b></p><p>Ses instantanés et actions propres seront supprimés définitivement de Passe-Ailes. Les autres trajectoires, les œuvres Passerelle et les campagnes globales ne seront pas supprimées.</p><p><b>'+snapshots.length+' instantané(s) concerné(s).</b></p><div class="pa14-actions"><button class="btn" id="pa21-cancel">Annuler</button><button class="btn danger" id="pa21-confirm">Supprimer définitivement</button></div></div>';
+ document.body.appendChild(overlay);
+ overlay.querySelector('#pa21-cancel').onclick=()=>overlay.remove();
+ overlay.querySelector('#pa21-confirm').onclick=()=>{
+  l.routes=l.routes.filter(x=>String(x.id)!==String(routeId));
+  l.archives=(l.archives||[]).filter(x=>String(x.routeId)!==String(routeId));
+  if(d.pa20Workflows)delete d.pa20Workflows[routeId];
+  persist();overlay.remove();renderDossierTab('overview');
+ };
+};
+renderDossierTab=function(tab){
+ const result=original(tab);
+ if(tab!=='overview'&&tab!=='trajectory')return result;
+ const d=dossierState(currentDossier),l=d.editorialLife||{};
+ const zone=document.getElementById('dossier-page-zone');if(!zone)return result;
+ const archived=(l.routes||[]).filter(x=>x.status==='archived');
+ if(tab==='overview'){
+  zone.querySelectorAll('.pa14-route').forEach(el=>{
+   const name=el.querySelector('b')?.textContent;
+   const route=archived.find(r=>r.label===name);
+   if(route&&!el.querySelector('.pa21-archive-delete')){
+    const button=document.createElement('button');button.className='btn sm pa21-archive-delete';button.textContent='Supprimer';button.onclick=()=>pa21DeleteArchive(route.id);el.lastElementChild?.appendChild(button);
+   }
+  });
+ }
+ if(tab==='trajectory'){
+  const archiveZone=zone.querySelector('.pa-life-archives');
+  if(archiveZone&&!archiveZone.querySelector('.pa21-archive-controls')){
+   const panel=document.createElement('div');panel.className='pa21-archive-controls';
+   panel.innerHTML='<h4>Nettoyer les trajectoires de test</h4>'+(archived.length?archived.map(r=>'<p>'+htmlSafe(r.label)+' <button class="btn sm pa21-archive-delete" data-route="'+htmlSafe(r.id)+'">Supprimer</button></p>').join(''):'<p class="note">Aucune trajectoire archivée à supprimer.</p>');
+   panel.querySelectorAll('button[data-route]').forEach(b=>b.onclick=()=>pa21DeleteArchive(b.dataset.route));archiveZone.appendChild(panel);
+  }
+ }
+ return result;
+};
+})();
+</script>
+
+<script>
+/* Passe-Ailes V22 : correctifs de campagnes et lecture du planning */
+(function(){
+ 'use strict';
+ const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+ window.pa22DeleteCampaign=function(cid){
+  const c=state.campaigns.find(x=>String(x.id)===String(cid));if(!c)return;
+  document.getElementById('pa22-confirm')?.remove();
+  const generated=state.events.filter(e=>String(e.campaignId)===String(cid)&&e.generatedBy==='pa16').length;
+  const other=state.events.filter(e=>String(e.campaignId)===String(cid)&&e.generatedBy!=='pa16').length;
+  const root=document.createElement('div');root.id='pa22-confirm';root.className='pa14-overlay';
+  root.innerHTML=`<div class="pa14-modal" role="dialog" aria-modal="true" style="width:min(560px,94vw)">
+    <h2>Supprimer la campagne ?</h2><p><b>${safe(c.name)}</b></p>
+    <p>La campagne sera supprimée. Les publications existantes seront conservées, mais ne seront plus rattachées à cette campagne.</p>
+    <p>${generated} publication(s) générée(s), ${other} autre(s) publication(s) associée(s).</p>
+    <label style="display:flex;align-items:center;gap:9px;margin:16px 0"><input id="pa22-delete-events" type="checkbox"> Supprimer aussi les publications générées par cette campagne</label>
+    <p class="note">Les publications créées manuellement sont toujours conservées. Cette opération ne modifie aucune autre campagne.</p>
+    <div class="pa14-actions"><button class="btn" id="pa22-no">Annuler</button><button class="btn danger" id="pa22-yes">Supprimer la campagne</button></div></div>`;
+  document.body.appendChild(root);
+  root.querySelector('#pa22-no').onclick=()=>root.remove();
+  root.querySelector('#pa22-yes').onclick=()=>{
+   const removeGenerated=root.querySelector('#pa22-delete-events').checked;
+   state.campaigns=state.campaigns.filter(x=>String(x.id)!==String(cid));
+   state.events=state.events.filter(e=>{
+    if(String(e.campaignId)!==String(cid))return true;
+    if(removeGenerated&&e.generatedBy==='pa16')return false;
+    delete e.campaignId;return true;
+   });
+   persist();root.remove();document.getElementById('pa16-modal')?.remove();
+   document.getElementById('pa15-modal')?.remove();
+   renderDossierTab('marketing');
+  };
+ };
+ // Préserver le filtre par œuvre pendant les changements de mois/semaine.
+ let selectedWork='';
+ const previousRender=window.renderPlanningZone;
+ window.renderPlanningZone=function(zone){
+  previousRender(zone);
+  const toolbar=zone.querySelector('.toolbar'),channel=zone.querySelector('#plan-channel');
+  if(!toolbar)return;
+  channel?.remove();
+  const picker=document.createElement('select');picker.id='pa22-work';picker.setAttribute('aria-label','Filtrer par œuvre');
+  picker.innerHTML='<option value="">Toutes les œuvres</option>'+proWorks.map(w=>`<option value="${safe(w.oeuvre_id)}">${safe(w.titre)}</option>`).join('');
+  picker.value=selectedWork;
+  picker.onchange=()=>{selectedWork=picker.value;drawPlan()};
+  const source=toolbar.querySelector('#plan-source');
+  if(source)source.before(picker);else toolbar.appendChild(picker);
+  drawPlan();
+ };
+ const originalMonthGrid=window.monthGrid;
+ window.monthGrid=function(base,events,zone,title){
+  if(zone==='plan-cal'&&selectedWork)events=events.filter(e=>String(e.workId)===selectedWork);
+  return originalMonthGrid(base,events,zone,title);
+ };
+ const originalEventCard=window.eventCard;
+ window.eventCard=function(e){
+  const html=originalEventCard(e);
+  return html.replace('class="event event-v11 ','class="event event-v11 pa22-event ');
+ };
+ // Le rendu hebdomadaire est filtré via les cartes, sans toucher aux événements.
+ const originalDraw=window.drawPlan;
+ window.drawPlan=function(){
+  originalDraw();
+  if(!selectedWork||typeof planningViewV11==='undefined'||planningViewV11!=='week')return;
+  document.querySelectorAll('#plan-cal .event').forEach(card=>{
+   const onclick=card.getAttribute('onclick')||'';
+   const id=onclick.match(/openEvent\('([^']+)'\)/)?.[1];
+   const e=state.events.find(x=>String(x.id)===String(id));
+   if(!e||String(e.workId)!==selectedWork)card.remove();
+  });
+ };
+ // Vue calendrier/liste complète des publications de l'œuvre.
+ let workView='calendar',offset=0;
+ function renderWorkCalendar(){
+  const events=state.events.filter(e=>String(e.workId)===String(currentDossier)&&e.date).sort((a,b)=>a.date.localeCompare(b.date));
+  const now=new Date(),base=new Date(now.getFullYear(),now.getMonth()+offset,1);
+  const y=base.getFullYear(),m=base.getMonth();
+  const host=document.getElementById('pa22-work-calendar');if(!host)return;
+  const heading=base.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const nav=`<div class="pa22-calendar-nav"><button class="btn sm" onclick="pa22CalendarMove(-1)">←</button><b>${safe(heading)}</b><button class="btn sm" onclick="pa22CalendarMove(1)">→</button><button class="btn sm" onclick="pa22CalendarView('${workView==='calendar'?'list':'calendar'}')">${workView==='calendar'?'Vue liste':'Calendrier'}</button></div>`;
+  if(workView==='list'){host.innerHTML=nav+events.map(e=>`<div class="pa15-next"><b>${safe(e.title)}</b><p class="pa15-muted">${safe(e.date)} · ${safe(e.channel||'')}</p></div>`).join('')||'<p>Aucune publication.</p>';return}
+  const start=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate();
+  let cells='<div class="pa22-cal-days">'+['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(x=>`<b>${x}</b>`).join('')+'</div><div class="pa22-cal-grid">';
+  for(let i=0;i<start;i++)cells+='<div class="pa22-cal-cell empty"></div>';
+  for(let day=1;day<=days;day++){
+   const date=y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+   cells+=`<div class="pa22-cal-cell"><small>${day}</small>`+events.filter(e=>e.date===date).map(e=>`<div class="pa22-cal-event" title="${safe(e.title)}">${safe(e.title)}</div>`).join('')+'</div>';
+  }
+  host.innerHTML=nav+cells+'</div>';
+ }
+ window.pa22CalendarMove=n=>{offset+=n;renderWorkCalendar()};
+ window.pa22CalendarView=v=>{workView=v;renderWorkCalendar()};
+ const originalDossier=window.renderDossierTab;
+ window.renderDossierTab=function(tab){
+  const result=originalDossier(tab);
+  if(tab==='marketing'){
+   const zone=document.getElementById('dossier-page-zone');
+   const heading=[...zone?.querySelectorAll('h2')||[]].find(h=>/Publications de l'œuvre/.test(h.textContent));
+   if(heading){
+    const card=heading.closest('.card');
+    if(card){card.innerHTML='<h2>🗓️ Publications de l’œuvre</h2><div id="pa22-work-calendar"></div>';renderWorkCalendar()}
+   }
+  }
+  return result;
+ };
+})();
+</script>
+<style>
+.pa22-delete-line{margin-top:14px;padding-top:14px;border-top:1px solid #e8dfea}
+.pa22-event img{width:64px!important;min-width:64px!important;max-height:92px!important;object-fit:cover}
+.pa22-calendar-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0;flex-wrap:wrap}
+.pa22-cal-days,.pa22-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.pa22-cal-days{text-align:center;font-size:12px;margin-bottom:5px}
+.pa22-cal-cell{border:1px solid #e9dff0;border-radius:8px;min-height:85px;padding:5px;min-width:0}
+.pa22-cal-cell small{color:#796987}.pa22-cal-cell.empty{border:0}
+.pa22-cal-event{font-size:11px;line-height:1.3;margin-top:4px;padding:5px;border-radius:5px;background:#eee5f5;overflow-wrap:anywhere}
+@media(max-width:700px){.pa22-cal-cell{min-height:56px;padding:2px}.pa22-cal-event{font-size:9px;padding:2px}}
+</style>
 </body></html>
