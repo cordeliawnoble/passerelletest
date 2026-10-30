@@ -1088,6 +1088,7 @@
 @media(max-width:580px){#work-character-gallery.work-character-cards-c92{grid-template-columns:1fr!important}}
 
 .c140-plan-nav{margin-bottom:14px}.c140-plan-bulk,.c140-man-bulk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;margin:10px 0;background:var(--bg-2);border:1px solid var(--border);border-radius:12px}.c140-plan-bulk small{width:100%;color:var(--text-dim)}.c140-plan-bulk select{max-width:190px}.c140-man-bulk{margin:14px 0}.c140-plan-tools{gap:10px}
+.c144-tools{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 24px;align-items:center}.c144-tools input,.c144-tools select{padding:12px;border:1px solid #dcd7e4;border-radius:10px;background:white;color:#292235;min-width:180px}.c144-tools input{flex:2}.c144-tools select{flex:1}.c144-tools span{font-size:12px;opacity:.7}.c144-list{display:grid;gap:7px}.c144-list-row{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;text-align:left;padding:15px;border:1px solid #e4dfea;border-radius:10px;background:#fff;color:#292235;cursor:pointer}.c144-list-row:hover{border-color:#8462bc}.c144-list-row small{opacity:.7}@media(max-width:650px){.c144-list-row{grid-template-columns:1fr}}
 </style>
 
 <style id="c43-ui">
@@ -7401,7 +7402,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     if(error){z.innerHTML=`<div class="empty">Erreur : ${safeText(error.message)}</div>`;return}
     oeuvreCatalogueDataV571=(data||[]).filter(o=>scope!=='independent'||(!o.saga_id&&!o.sous_saga_id));
     await hydrateCardThemesV576c13('work',oeuvreCatalogueDataV571);
-    z.innerHTML=`<div id="oc-grid"></div>`;
+    z.innerHTML=`<div class="c144-tools"><input id="c144-q" placeholder="Rechercher une œuvre…" oninput="renderOeuvreCatalogueV571()"><select id="c144-col" onchange="renderOeuvreCatalogueV571()"><option value="">Toutes les collections</option>${[...new Set(oeuvreCatalogueDataV571.map(o=>o.univers?.nom||'Sans collection'))].sort((a,b)=>a.localeCompare(b,'fr')).map(n=>`<option value="${safeText(n)}">${safeText(n)}</option>`).join('')}</select><select id="c144-view" onchange="renderOeuvreCatalogueV571()"><option value="gallery">Galerie alphabétique</option><option value="list">Liste alphabétique</option><option value="groups">Regroupé par collection</option></select><span id="c144-count"></span></div><div id="oc-grid"></div>`;
     renderOeuvreCatalogueV571();
   }
   function resetOeuvreCatalogueFiltersV576c14(){['oc-q','oc-col','oc-saga','oc-ss','oc-ed'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});syncOeuvreSousSagaFilterV571();renderOeuvreCatalogueV571();}
@@ -7409,16 +7410,17 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
 
   function workCatalogCardV576c36(o){const img=o.couverture||o.univers?.placeholder_couverture_url||'';const tags=[o.sous_sagas?.nom||o.sagas?.nom||null,o.univers?.nom||null,o.statut_editorial_actuel||o.statut||null].filter(Boolean).slice(0,2);const detail=workCardViewC38==='detailed';return `<article class="work-card-c38 ${detail?'detailed':'compact'}" onclick="openOeuvreDetail('${o.id}')"><div class="cover">${img?`<img src="${safeText(img)}" alt="">`:`<div style="padding:10px;text-align:center;color:var(--text-dim);font-size:10px">${safeText(o.titre)}</div>`}</div><div class="body"><h3 title="${safeText(o.titre)}">${safeText(o.titre)}</h3><div class="chips">${tags.map(t=>`<span>${safeText(t)}</span>`).join('')}</div></div></article>`}
   function renderOeuvreCatalogueV571(){
-    const rows=oeuvreCatalogueDataV571;
-    const groups=new Map();
-    rows.forEach(o=>{
-      const k=o.univers?.nom||'Sans collection';
-      if(!groups.has(k))groups.set(k,[]);
-      groups.get(k).push(o);
-    });
+    const q=(document.getElementById('c144-q')?.value||'').toLocaleLowerCase('fr').trim();
+    const col=document.getElementById('c144-col')?.value||'';
+    const view=document.getElementById('c144-view')?.value||'gallery';
+    const rows=oeuvreCatalogueDataV571.filter(o=>(!col||(o.univers?.nom||'Sans collection')===col)&&(!q||String(o.titre||'').toLocaleLowerCase('fr').includes(q))).sort((a,b)=>String(a.titre||'').localeCompare(String(b.titre||''),'fr',{numeric:true,sensitivity:'base'}));
+    const count=document.getElementById('c144-count');if(count)count.textContent=rows.length+' œuvre(s)';
     const grid=document.getElementById('oc-grid');if(!grid)return;
-    grid.innerHTML=!rows.length?'<div class="empty">Aucune œuvre.</div>':
-      [...groups.entries()].map(([k,a])=>`<section class="oeuvre-collection-v41"><h3 class="catalog-group-title">${safeText(k)} <small style="color:var(--text-dim)">· ${a.length}</small></h3><div class="entity-gallery ${workCardViewC38==='compact'?'work-grid-compact-c38':''}">${a.map(workCatalogCardV576c36).join('')}</div></section>`).join('');
+    if(!rows.length){grid.innerHTML='<div class="empty">Aucune œuvre ne correspond à la recherche.</div>';return}
+    if(view==='list'){grid.innerHTML=`<div class="c144-list">${rows.map(o=>`<button type="button" class="c144-list-row" onclick="openOeuvreDetail('${o.id}')"><strong>${safeText(o.titre)}</strong><small>${safeText(o.univers?.nom||'Sans collection')}</small><small>${safeText(o.statut_editorial_actuel||o.statut||'')}</small></button>`).join('')}</div>`;return}
+    if(view==='gallery'){grid.innerHTML=`<div class="entity-gallery ${workCardViewC38==='compact'?'work-grid-compact-c38':''}">${rows.map(workCatalogCardV576c36).join('')}</div>`;return}
+    const groups=new Map();rows.forEach(o=>{const k=o.univers?.nom||'Sans collection';if(!groups.has(k))groups.set(k,[]);groups.get(k).push(o)});
+    grid.innerHTML=[...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0],'fr')).map(([k,items])=>`<section class="oeuvre-collection-v41"><h3 class="catalog-group-title">${safeText(k)} <small>· ${items.length}</small></h3><div class="entity-gallery ${workCardViewC38==='compact'?'work-grid-compact-c38':''}">${items.map(workCatalogCardV576c36).join('')}</div></section>`).join('');
   }
   // ============================================================
   // ŒUVRE — page détail, avec onglets
@@ -10224,7 +10226,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     const {data:c,error}=await db().from('chapitres').select('*').eq('id',id).single();if(error||!c)return alert(error?.message||'Chapitre introuvable');
     openDrawer(title,`<div class="row2"><div><label>Titre</label><input id="c109-man-title" value="${safeText(c.titre||'')}"></div><div><label>Nombre de mots</label><input id="c109-man-words" type="number" min="0" value="${Number(c.nb_mots||0)}"></div><div><label>État</label><select id="c109-man-state"><option value="Écrit" ${!/^à relire$/i.test(c.etat||"")?"selected":""}>Écrit</option><option value="À relire" ${/^à relire$/i.test(c.etat||"")?"selected":""}>À relire</option></select></div><div><label>Date d’écriture</label><input id="c109-man-date" type="date" value="${safeText((c.date_ecriture||'').slice(0,10))}"></div></div><label>Résumé réel du chapitre</label><textarea id="c109-man-summary" style="min-height:130px">${safeText(c.resume||'')}</textarea><label>Notes</label><div class="rich-toolbar"><button onclick="document.execCommand('bold')"><b>B</b></button><button onclick="document.execCommand('italic')"><i>I</i></button><button onclick="document.execCommand('underline')"><u>U</u></button></div><div id="rich-manuscript" class="rich-editor" contenteditable="true" style="min-height:180px">${c.memo||''}</div><button class="btn-primary" style="margin-top:14px" onclick="saveManuscriptChapterC109('${id}')">Enregistrer le chapitre</button>`);
   }
-  async function saveManuscriptChapterC109(id){const payload={titre:document.getElementById('c109-man-title').value.trim()||'Sans titre',nb_mots:Number(document.getElementById('c109-man-words').value||0),etat:document.getElementById('c109-man-state').value.trim()||'Écrit',date_ecriture:document.getElementById('c109-man-date').value||null,resume:document.getElementById('c109-man-summary').value.trim()||null,memo:document.getElementById('rich-manuscript').innerHTML,updated_at:new Date().toISOString()};const {error}=await db().from('chapitres').update(payload).eq('id',id);if(error)return alert('Erreur : '+error.message);const total=await db().from('chapitres').select('nb_mots,etat,statut').eq('oeuvre_id',currentOeuvreId);if(!total.error){const words=(total.data||[]).filter(c109WrittenChapter).reduce((n,c)=>n+Number(c.nb_mots||0),0);await db().from('oeuvres').update({mots_ecrits:words}).eq('id',currentOeuvreId)}if(payload.etat==='À relire'){
+  async function saveManuscriptChapterC109(id){const payload={titre:document.getElementById('c109-man-title').value.trim()||'Sans titre',nb_mots:Number(document.getElementById('c109-man-words').value||0),etat:document.getElementById('c109-man-state').value.trim()||'Écrit',date_ecriture:document.getElementById('c109-man-date').value||null,resume:document.getElementById('c109-man-summary').value.trim()||null,memo:document.getElementById('rich-manuscript').innerHTML};const {error}=await db().from('chapitres').update(payload).eq('id',id);if(error)return alert('Erreur : '+error.message);const total=await db().from('chapitres').select('nb_mots,etat,statut').eq('oeuvre_id',currentOeuvreId);if(!total.error){const words=(total.data||[]).filter(c109WrittenChapter).reduce((n,c)=>n+Number(c.nb_mots||0),0);await db().from('oeuvres').update({mots_ecrits:words}).eq('id',currentOeuvreId)}if(payload.etat==='À relire'){
     const rr=await db().from('relectures').select('id').eq('oeuvre_id',currentOeuvreId).order('created_at',{ascending:false}).limit(1);
     if(!rr.error&&rr.data?.length){
       const rid=rr.data[0].id;
