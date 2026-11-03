@@ -1595,8 +1595,8 @@ templates.subscription.diffusion=templates.online.diffusion;
 const routeType=()=>{
  const d=dossierState(currentDossier),life=d.editorialLife||{},r=(life.routes||[]).find(x=>x.id===life.activeRouteId),name=String(r?.label||'').toLowerCase(),type=String(r?.type||d.template||'online').toLowerCase();
  if(/concours/.test(name)||/contest/.test(type))return 'contest';
- if(/maison d|éditeur|edition|édition/.test(name)||/publisher/.test(type))return 'publisher';
- if(/auto.?édition|ebook/.test(name)||/selfpub|autoedition/.test(type))return 'selfpub';
+ if(/auto.?édition|auto.?edition|ebook/.test(name)||/selfpub|autoedition/.test(type))return 'selfpub';
+ if(/maison d|éditeur|éditeur|maison d'édition/.test(name)||/publisher/.test(type))return 'publisher';
  if(/abonnement/.test(name)||/subscription/.test(type))return 'subscription';
  return 'online';
 };
@@ -1821,4 +1821,137 @@ renderDossierTab=function(tab){
 .pa22-cal-event{font-size:11px;line-height:1.3;margin-top:4px;padding:5px;border-radius:5px;background:#eee5f5;overflow-wrap:anywhere}
 @media(max-width:700px){.pa22-cal-cell{min-height:56px;padding:2px}.pa22-cal-event{font-size:9px;padding:2px}}
 </style>
+
+<style id="pa23-css">
+.pa23-filter{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0}
+.pa23-filter select,.pa23-filter input{max-width:100%;padding:9px;border:1px solid #e8dff0;border-radius:9px;background:#fff}
+.pa23-actions{display:flex;gap:6px;flex-wrap:wrap}
+.pa23-credits{display:grid;gap:12px}
+.pa23-credit{border:1px solid #e8dff0;border-radius:12px;padding:14px;background:white}
+.pa23-credit small{display:block;color:#81738c;margin-top:5px}
+.pa23-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pa23-form label{display:grid;gap:4px}
+.pa23-form input,.pa23-form select,.pa23-form textarea{width:100%;padding:9px;border:1px solid #dfd5e7;border-radius:8px}
+.pa23-wide{grid-column:1/-1}
+.pa23-modal-bg{position:fixed;inset:0;background:#21152799;display:grid;place-items:center;z-index:99999;padding:15px}
+.pa23-modal{background:#fff;max-width:700px;width:100%;max-height:92vh;overflow:auto;border-radius:16px;padding:22px}
+.pa23-cal-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:16px}
+@media(max-width:650px){.pa23-form{grid-template-columns:1fr}}
+</style>
+<script id="pa23-js">
+(function(){
+'use strict';
+const H=v=>esc(String(v??''));
+const works=()=>typeof proWorks==='undefined'?[]:proWorks;
+const refs=()=>marketingResources().filter(x=>x.type==='hashtag');
+const workId=()=>String(currentDossier||'');
+const activeEdition=()=>{
+ const d=dossierState(workId()),l=d.editorialLife||{},r=(l.routes||[]).find(x=>x.id===l.activeRouteId);
+ return String(r?.type||d.template||'online');
+};
+const editData=()=>{
+ const d=dossierState(workId());
+ d.pa23BookEditions=d.pa23BookEditions||{};
+ const key=activeEdition();
+ return d.pa23BookEditions[key]||(d.pa23BookEditions[key]={records:[],info:{format:key==='selfpub'?'Ebook':'À définir'}});
+};
+function modal(title,body,submit,onSave){
+ document.getElementById('pa23-modal-bg')?.remove();
+ const bg=document.createElement('div');bg.id='pa23-modal-bg';bg.className='pa23-modal-bg';
+ bg.innerHTML='<div class="pa23-modal" role="dialog" aria-modal="true"><h2>'+H(title)+'</h2><form id="pa23-form">'+body+'<div class="pa23-cal-actions"><button type="button" class="btn" id="pa23-cancel">Annuler</button><button type="submit" class="btn primary">'+H(submit||'Enregistrer')+'</button></div></form></div>';
+ document.body.appendChild(bg);
+ bg.querySelector('#pa23-cancel').onclick=()=>bg.remove();
+ bg.onclick=e=>{if(e.target===bg)bg.remove()};
+ bg.querySelector('form').onsubmit=e=>{e.preventDefault();onSave(new FormData(e.target));bg.remove()};
+}
+function field(name,label,value='',kind='text',opts=[]){
+ return '<label>'+H(label)+(kind==='textarea'?'<textarea name="'+name+'" rows="3">'+H(value)+'</textarea>':kind==='select'?'<select name="'+name+'">'+opts.map(o=>'<option '+(o===value?'selected':'')+'>'+H(o)+'</option>').join('')+'</select>':'<input name="'+name+'" type="'+kind+'" value="'+H(value)+'">')+'</label>';
+}
+let filter='active',scope='all';
+function paintHashtags(){
+ const panel=[...document.querySelectorAll('.pa19-panel')].find(x=>x.querySelector('h3')?.textContent.includes('Bibliothèque de hashtags'));
+ if(!panel)return;
+ const list=refs(),available=list.filter(x=>(filter==='all'||!!x.archived===(filter==='archived'))&&(scope==='all'||(scope==='general'?!x.pa23WorkIds?.length&&!x.pa23Saga:(x.pa23WorkIds||[]).includes(scope)||x.pa23Saga===scope)));
+ const scopes='<option value="all">Toutes les collections</option><option value="general">Général</option>'+works().map(w=>'<option value="'+H(w.oeuvre_id)+'">'+H(w.titre)+'</option>').join('');
+ const heading=panel.querySelector('.pa-v17-top');
+ panel.querySelector('.pa23-filter')?.remove();
+ heading?.insertAdjacentHTML('afterend','<div class="pa23-filter"><select id="pa23-status"><option value="active">Actifs</option><option value="archived">Archivés</option><option value="all">Tous</option></select><select id="pa23-scope">'+scopes+'</select></div>');
+ panel.querySelector('#pa23-status').value=filter;
+ panel.querySelector('#pa23-scope').value=scope;
+ panel.querySelector('#pa23-status').onchange=e=>{filter=e.target.value;paintHashtags()};
+ panel.querySelector('#pa23-scope').onchange=e=>{scope=e.target.value;paintHashtags()};
+ for(const line of [...panel.querySelectorAll('.pa19-line')])line.remove();
+ const empty=panel.querySelector('p');if(empty&&empty.textContent.includes('Aucun ensemble'))empty.remove();
+ panel.insertAdjacentHTML('beforeend',available.length?available.map(x=>'<div class="pa19-line"><div style="flex:1"><strong>'+H(x.title||x.name||'Hashtags')+'</strong><div class="pa19-muted">'+H(x.content||x.notes||'')+'</div><small>'+H(x.pa23Saga?'Saga : '+x.pa23Saga:(x.pa23WorkIds||[]).map(id=>works().find(w=>String(w.oeuvre_id)===String(id))?.titre).filter(Boolean).join(' · ')||'Général')+'</small></div><div class="pa23-actions"><button class="btn sm" data-pa19-action="hashtag-copy:'+H(x.id)+'">Copier</button><button class="btn sm" data-pa19-action="resource-edit:'+H(x.id)+'">Modifier</button><button class="btn sm" data-pa23="assign" data-id="'+H(x.id)+'">Associer</button><button class="btn sm" data-pa23="archive" data-id="'+H(x.id)+'">'+(x.archived?'Restaurer':'Archiver')+'</button></div></div>').join(''):'<p>Aucune collection pour ce filtre.</p>');
+}
+function hashtagLink(id){
+ const x=refs().find(v=>String(v.id)===String(id));if(!x)return;
+ const choices=works().map(w=>'<label style="display:block"><input type="checkbox" name="work" value="'+H(w.oeuvre_id)+'" '+((x.pa23WorkIds||[]).map(String).includes(String(w.oeuvre_id))?'checked':'')+'> '+H(w.titre)+'</label>').join('');
+ modal('Associer une collection','<p>Une même collection peut servir à plusieurs œuvres.</p><div style="max-height:240px;overflow:auto">'+choices+'</div>'+field('saga','Saga (facultatif)',x.pa23Saga||''),'Enregistrer',f=>{
+  x.pa23WorkIds=f.getAll('work');x.pa23Saga=String(f.get('saga')||'').trim();persist();paintHashtags();
+ });
+}
+function bookPage(){
+ const zone=document.getElementById('dossier-page-zone');if(!zone)return;
+ const d=editData(),w=works().find(x=>String(x.oeuvre_id)===workId());
+ const info=d.info||{},records=d.records||[];
+ const base='<div class="card"><div class="dossier-section-title"><h2>📖 Mentions & crédits</h2><button class="btn primary" onclick="pa23BookInfo()">Informations éditoriales</button></div><p class="note">Dossier par trajectoire / édition. Les justificatifs sont conservés pour toi, distincts des crédits publiés.</p><div class="pa23-form">'+[['Titre',w?.titre||''],['Autrice',info.author||''],['Format',info.format||''],['ISBN',info.isbn||''],['Éditeur',info.publisher||''],['Date de publication',info.date||''],['Imprimeur',info.printer||''],['Dépôt légal',info.deposit||'']].map(([k,v])=>'<div><small>'+H(k)+'</small><b>'+H(v||'À renseigner')+'</b></div>').join('')+'</div></div>';
+ const credits='<div class="card"><div class="dossier-section-title"><h2>🎨 Ressources et autorisations</h2><button class="btn primary" onclick="pa23Credit()">+ Crédit</button></div><div class="pa23-credits">'+(records.length?records.map(x=>'<div class="pa23-credit"><b>'+H(x.title||x.kind)+'</b><small>'+H(x.kind)+' · '+H(x.creator||'Créateur à renseigner')+'</small><small>Licence / droits : '+H(x.license||'À vérifier')+'</small><small>Crédit public : '+H(x.publicCredit||'Non renseigné')+'</small><small>Justificatif : '+H(x.proof||'Non renseigné')+'</small><button class="btn sm" onclick="pa23Credit(\''+H(x.id)+'\')">Modifier</button> <button class="btn sm danger" onclick="pa23DeleteCredit(\''+H(x.id)+'\')">Supprimer</button></div>').join(''):'<p>Aucun crédit enregistré.</p>')+'</div></div>';
+ const checklist='<div class="card"><h2>📋 Vérifications avant publication</h2><p class="note">Aide-mémoire, pas une certification juridique. Les obligations dépendent du format, du territoire et du mode de diffusion.</p>'+['Informations d’édition et copyright vérifiées','ISBN vérifié pour cette édition, si applicable','Autorisations et crédits des éléments tiers vérifiés','Mentions propres au format et à la diffusion vérifiées','Dépôt légal vérifié selon les obligations applicables'].map((t,i)=>'<label style="display:block;margin:10px 0"><input type="checkbox" data-pa23-check="'+i+'" '+(d.checks?.[i]?'checked':'')+'> '+H(t)+'</label>').join('')+'<button class="btn" onclick="pa23CopyCredits()">Copier les crédits et mentions préparés</button></div>';
+ zone.innerHTML=base+credits+checklist;
+}
+window.pa23BookInfo=()=>{
+ const d=editData(),v=d.info||{},w=works().find(x=>String(x.oeuvre_id)===workId());
+ modal('Informations de cette édition','<div class="pa23-form">'+field('author','Nom de l’autrice',v.author||'Cordélia W. Noble')+field('format','Format',v.format||'Ebook','select',['Ebook','Broché','Relié','Autre'])+field('isbn','ISBN',v.isbn||'')+field('publisher','Éditeur',v.publisher||'')+field('date','Date de publication',v.date||'','date')+field('printer','Imprimeur',v.printer||'')+field('deposit','Dépôt légal / référence',v.deposit||'')+field('copyright','Formulation des droits / copyright',v.copyright||'','textarea')+'</div>','Enregistrer',f=>{d.info=Object.fromEntries(f.entries());persist();bookPage()});
+};
+window.pa23Credit=id=>{
+ const d=editData(),x=d.records.find(r=>r.id===id)||{};
+ const fields=[['title','Élément (ex. couverture)','text'],['kind','Type de ressource','select',['Couverture','Illustration intérieure','Photographie','Carte','Ornement','Typographie','Texte tiers','Autre']],['creator','Créateur / titulaire','text'],['source','Source / URL','text'],['license','Licence / autorisation','textarea'],['usage','Utilisations autorisées','textarea'],['publicCredit','Crédit à publier','textarea'],['proof','Justificatif (lien ou référence)','text'],['expires','Expiration éventuelle','date']];
+ modal(id?'Modifier un crédit':'Ajouter un crédit','<div class="pa23-form">'+fields.map(([k,l,t,opts])=>field(k,l,x[k]||'',t,opts)).join('')+'</div>','Enregistrer',f=>{
+  const o={...x,...Object.fromEntries(f.entries()),id:x.id||'CR-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)};
+  if(id){const i=d.records.findIndex(r=>r.id===id);if(i>=0)d.records[i]=o}else d.records.push(o);
+  persist();bookPage();
+ });
+};
+window.pa23DeleteCredit=id=>modal('Supprimer ce crédit ?','<p>Cette action supprime uniquement cette fiche de crédit, pas l’œuvre ni les autres éditions.</p>','Supprimer',()=>{const d=editData();d.records=d.records.filter(x=>x.id!==id);persist();bookPage()});
+window.pa23CopyCredits=()=>{
+ const d=editData(),w=works().find(x=>String(x.oeuvre_id)===workId()),v=d.info||{};
+ const text=[w?.titre||'',v.author||'',v.publisher?'Éditeur : '+v.publisher:'',v.isbn?'ISBN : '+v.isbn:'',v.date?'Date de publication : '+v.date:'',v.printer?'Impression : '+v.printer:'',v.deposit?'Dépôt légal : '+v.deposit:'',v.copyright||'',...d.records.map(x=>x.publicCredit||'').filter(Boolean)].filter(Boolean).join('\n');
+ navigator.clipboard?.writeText(text);
+};
+function marketingExtras(){
+ const zone=document.getElementById('dossier-page-zone');if(!zone)return;
+ const matched=refs().filter(x=>!x.archived&&((x.pa23WorkIds||[]).map(String).includes(workId())||(x.pa23Saga&&String(works().find(w=>String(w.oeuvre_id)===workId())?.saga||'').toLowerCase()===x.pa23Saga.toLowerCase())));
+ zone.insertAdjacentHTML('beforeend','<div class="card"><h2># Collections de hashtags liées à cette œuvre</h2>'+(matched.length?matched.map(x=>'<div class="pa19-line"><div><b>'+H(x.title||x.name)+'</b><p>'+H(x.content||x.notes||'')+'</p></div><button class="btn sm" onclick="pa23CopyHashtag(\''+H(x.id)+'\')">Copier</button></div>').join(''):'<p class="note">Aucune collection associée. Associe-les depuis Communication → Références.</p>')+'</div>');
+}
+window.pa23CopyHashtag=id=>{const x=refs().find(v=>String(v.id)===id);if(x)navigator.clipboard?.writeText(x.content||x.notes||'')};
+const old=window.renderDossierTab;
+window.renderDossierTab=function(tab){
+ if(tab==='diffusions'&&window.pa23CurrentTab==='credits'){document.querySelectorAll('#dossier-page-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.dtab===tab));bookPage();addCreditsTab();return}
+ const r=old(tab);
+ if(tab==='diffusions'){addCreditsTab()}
+ if(tab==='marketing')marketingExtras();
+ return r;
+};
+function addCreditsTab(){
+ const zone=document.getElementById('dossier-page-zone');if(!zone)return;let nav=zone.querySelector('.pa14-tabs');if(!nav){nav=document.createElement('nav');nav.className='pa14-tabs';nav.innerHTML='<button onclick="pa20Tab(\'edition\')">Édition</button><button onclick="pa20Tab(\'diffusion\')">Diffusion / Soumissions</button>';zone.prepend(nav);}
+ if(!nav.querySelector('[data-pa23-credits]')){
+  const b=document.createElement('button');b.dataset.pa23Credits='';b.textContent='Mentions & crédits';b.onclick=()=>{window.pa23CurrentTab='credits';bookPage();addCreditsTab()};nav.appendChild(b);
+ }
+ nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.hasAttribute('data-pa23-credits')?window.pa23CurrentTab==='credits':window.pa23CurrentTab!=='credits'&&b.classList.contains('active')));
+}
+const oldTab=window.pa20Tab;
+window.pa20Tab=function(v){window.pa23CurrentTab=v;oldTab(v)};
+document.addEventListener('change',e=>{const input=e.target.closest('[data-pa23-check]');if(!input)return;const d=editData();d.checks=d.checks||{};d.checks[input.dataset.pa23Check]=input.checked;persist()});
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-pa23]');if(!b)return;
+ e.stopPropagation();e.preventDefault();
+ const x=refs().find(v=>String(v.id)===String(b.dataset.id));if(!x)return;
+ if(b.dataset.pa23==='assign')hashtagLink(x.id);
+ if(b.dataset.pa23==='archive'){x.archived=!x.archived;persist();paintHashtags()}
+},true);
+const obs=new MutationObserver(()=>{const panel=[...document.querySelectorAll('.pa19-panel')].find(x=>x.querySelector('h3')?.textContent.includes('Bibliothèque de hashtags'));if(panel&&!panel.querySelector('.pa23-filter'))paintHashtags()});
+obs.observe(document.getElementById('communication-zone')||document.body,{childList:true,subtree:true});
+})();
+</script>
 </body></html>
