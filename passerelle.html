@@ -1089,6 +1089,7 @@
 
 .c140-plan-nav{margin-bottom:14px}.c140-plan-bulk,.c140-man-bulk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;margin:10px 0;background:var(--bg-2);border:1px solid var(--border);border-radius:12px}.c140-plan-bulk small{width:100%;color:var(--text-dim)}.c140-plan-bulk select{max-width:190px}.c140-man-bulk{margin:14px 0}.c140-plan-tools{gap:10px}
 .c144-tools{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 24px;align-items:center}.c144-tools input,.c144-tools select{padding:12px;border:1px solid #dcd7e4;border-radius:10px;background:white;color:#292235;min-width:180px}.c144-tools input{flex:2}.c144-tools select{flex:1}.c144-tools span{font-size:12px;opacity:.7}.c144-list{display:grid;gap:7px}.c144-list-row{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;text-align:left;padding:15px;border:1px solid #e4dfea;border-radius:10px;background:#fff;color:#292235;cursor:pointer}.c144-list-row:hover{border-color:#8462bc}.c144-list-row small{opacity:.7}@media(max-width:650px){.c144-list-row{grid-template-columns:1fr}}
+.c145-table-wrap{overflow-x:auto}.c145-click{cursor:pointer}.c145-click:hover{background:rgba(150,110,200,.09)}.c145-muted{font-size:11px;opacity:.65}.c145-drawer{display:grid;gap:14px;padding:8px}.c145-field{display:grid;gap:5px;font-size:13px}.c145-field input,.c145-field select,.c145-field textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #aaa;border-radius:8px;background:var(--card-bg,#fff);color:inherit}.c145-dates{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.c145-actions{display:flex;flex-wrap:wrap;gap:10px}.c145-check{display:flex;gap:10px;align-items:center}.c145-work{padding:12px;border:1px solid #aaa5;border-radius:10px;margin:8px 0}.c145-work div,.c145-work small{opacity:.7}
 </style>
 
 <style id="c43-ui">
@@ -5064,6 +5065,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     { key:'catalogue', label:'Catalogue' },
     { key:'destinations', label:'Destinations' },
     { key:'niveau', label:'Cibles éditoriales' },
+    { key:'annuaire-beta', label:'Annuaire des bêta' },
   ];
   let beData = [];
   let beSagas = [];
@@ -5153,6 +5155,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     if(key==='catalogue') renderBeCatalogue(zone);
     if(key==='destinations') renderBeGroupe(zone,'destination_editoriale',DESTINATIONS,true);
     if(key==='niveau') renderBeGroupe(zone,'niveau_editorial_cible',NIVEAUX,false);
+    if(key==='annuaire-beta') renderAnnuaireBetaC145(zone);
   }
 
   function sagaName(id){ return beSagas.find(s=>s.id===id)?.nom || '—'; }
@@ -8304,7 +8307,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   let currentRelectureV2=null; let relectureView='table';
   let oeuvreRelectureTabV42=sessionStorage.getItem('passerelle_oeuvre_relecture_tab')||'informations';
   function setOeuvreRelectureTabV42(tab){oeuvreRelectureTabV42=tab;sessionStorage.setItem('passerelle_oeuvre_relecture_tab',tab);renderOeuvreRelectureV2(document.getElementById('oeuvre-tab-content'))}
-  function relectureSubnavV42(){return `<div class="relecture-subtabs-v42">${[['informations','Informations'],['suivi','Suivi de correction'],['journal','Journal de correction']].map(([k,l])=>`<button class="${oeuvreRelectureTabV42===k?'active':''}" onclick="setOeuvreRelectureTabV42('${k}')">${l}</button>`).join('')}</div>`}
+  function relectureSubnavV42(){return `<div class="relecture-subtabs-v42">${[['informations','Informations'],['suivi','Suivi de correction'],['journal','Journal de correction'],['beta','Bêta-lecteurs']].map(([k,l])=>`<button class="${oeuvreRelectureTabV42===k?'active':''}" onclick="setOeuvreRelectureTabV42('${k}')">${l}</button>`).join('')}</div>`}
   async function ensureOeuvreRelectureV42(zone){
     let {data:rs,error}=await db().from('relectures').select('*').eq('oeuvre_id',currentOeuvreId).order('created_at',{ascending:false}).limit(1);
     if(error)throw error;
@@ -8318,6 +8321,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     currentRelectureV2=rs[0];currentRelectureId=rs[0].id;return rs[0];
   }
   async function renderOeuvreRelectureV2(zone){
+    if(oeuvreRelectureTabV42==='beta')return renderOeuvreBetaC145(zone);
     zone.innerHTML=`<div class="status-line">Chargement…</div>`;
     try{
       const relecture=await ensureOeuvreRelectureV42(zone);if(!relecture)return;
@@ -10440,6 +10444,86 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     }catch(e){alert('Chapitre non transféré : '+e.message);return false}
   }
   async function bulkManuscriptC140(state){const ids=[...document.querySelectorAll('.c140-man-check:checked')].map(x=>x.value);if(!ids.length)return alert('Sélectionne des chapitres.');if(!confirm(`Passer ${ids.length} chapitre(s) à « ${state} » ?`))return;let n=0;for(const id of ids){if(await setManuscriptStateC140(id,state,false))n++}await renderOeuvreManuscrit(document.getElementById('oeuvre-tab-content'));alert(`${n}/${ids.length} chapitre(s) mis à jour.`)}
+
+
+  // C145 : annuaire central + collaborations par oeuvre, sans fusion par pseudo.
+  let betaContactsC145=[],betaLinksC145=[],betaWorksC145=[];
+  const betaEscC145=v=>safeText(v??'');
+  const betaDateC145=v=>v?new Date(v+'T12:00:00').toLocaleDateString('fr-FR'):'—';
+  const betaStatesC145=['Sollicitée','Acceptée','Lecture en cours','Retour reçu','Terminée','Déclinée'];
+  const betaInputC145=(id,label,val='',type='text')=>`<label class="c145-field"><span>${label}</span><input id="${id}" type="${type}" value="${betaEscC145(val)}"></label>`;
+  const betaSelectC145=(id,label,values,selected)=>`<label class="c145-field"><span>${label}</span><select id="${id}">${values.map(v=>`<option value="${betaEscC145(v)}" ${v===selected?'selected':''}>${betaEscC145(v)}</option>`).join('')}</select></label>`;
+  const betaValC145=id=>document.getElementById(id)?.value||'';
+  async function betaLoadC145(){
+    const [c,l,w]=await Promise.all([
+      db().from('beta_contacts').select('*').eq('user_id',currentUser.id).order('pseudo'),
+      db().from('beta_collaborations').select('*').eq('user_id',currentUser.id),
+      db().from('oeuvres').select('id,titre').eq('archive',false)
+    ]);
+    if(c.error||l.error)throw new Error(c.error?.message||l.error?.message);
+    betaContactsC145=c.data||[];betaLinksC145=l.data||[];betaWorksC145=w.data||[];
+  }
+  function betaContactC145(id){return betaContactsC145.find(c=>c.id===id)}
+  function betaWorkC145(id){return betaWorksC145.find(w=>w.id===id)?.titre||'Œuvre inconnue'}
+  async function renderOeuvreBetaC145(zone){
+    zone.innerHTML=relectureSubnavV42()+'<div class="status-line">Chargement des bêta-lectures…</div>';
+    try{await betaLoadC145()}catch(e){zone.innerHTML=relectureSubnavV42()+`<div class="panel"><h3>Configuration nécessaire</h3><p>${betaEscC145(e.message)}</p><p>Exécute d’abord le fichier SQL C145 dans ton projet Supabase de test.</p></div>`;return}
+    const rows=betaLinksC145.filter(l=>l.oeuvre_id===currentOeuvreId);
+    zone.innerHTML=relectureSubnavV42()+`<div class="panel"><div class="head-row"><div><h2>Alpha & bêta-lecteurs</h2><p>Contacts partagés avec l’annuaire. Attentes, dates et documents propres à cette œuvre.</p></div><button class="btn-primary" onclick="betaEditLinkC145()">＋ Ajouter une collaboration</button></div>
+    <div class="c145-table-wrap"><table class="ch-table"><thead><tr><th>Lecteur·rice</th><th>Type</th><th>Statut</th><th>Retour attendu</th><th>Relance</th><th>Retour / devis</th><th></th></tr></thead><tbody>${rows.map(l=>{const c=betaContactC145(l.contact_id);return `<tr><td><strong>${betaEscC145(c?.pseudo||'Contact inconnu')}</strong><div class="c145-muted">${betaEscC145(c?.email)}</div></td><td>${betaEscC145(l.type_lecture)}</td><td>${betaEscC145(l.statut)}</td><td>${betaDateC145(l.date_retour_attendu)}</td><td>${['Retour reçu','Terminée','Déclinée'].includes(l.statut)?'✓ Sans relance':betaDateC145(l.date_relance)}</td><td>${l.lien_retour?`<a href="${betaEscC145(betaSafeUrlC145(l.lien_retour))}" target="_blank" rel="noopener">Retour ↗</a>`:'—'}${c?.pro&&l.lien_devis?` · <a href="${betaEscC145(betaSafeUrlC145(l.lien_devis))}" target="_blank" rel="noopener">Devis ↗</a>`:''}</td><td><button class="tiny-btn" onclick="betaEditLinkC145('${l.id}')">Modifier</button></td></tr>`}).join('')||'<tr><td colspan="7">Aucune collaboration pour cette œuvre.</td></tr>'}</tbody></table></div></div>`;
+  }
+  function betaSafeUrlC145(url){try{const u=new URL(url);return ['https:','http:'].includes(u.protocol)?u.href:'#'}catch{return '#'}}
+  function betaEditLinkC145(id){
+    const l=betaLinksC145.find(x=>x.id===id)||{};
+    const contacts=betaContactsC145.map(c=>`<option value="${betaEscC145(c.id)}" ${c.id===l.contact_id?'selected':''}>${betaEscC145(c.pseudo)}${c.email?' · '+betaEscC145(c.email):''}</option>`).join('');
+    openDrawer('Collaboration éditoriale',`<div class="c145-drawer"><h2>${id?'Modifier':'Ajouter'} une collaboration</h2><p>Choisis une personne de l’annuaire ou crée un nouveau contact.</p>
+      <label class="c145-field"><span>Contact</span><select id="c145-contact"><option value="">Nouveau contact…</option>${contacts}</select></label>
+      <div class="c145-inline"><button class="tiny-btn" onclick="betaEditContactC145()">＋ Créer une fiche contact</button></div>
+      ${betaSelectC145('c145-type','Type de lecture',['Bêta','Alpha'],l.type_lecture||'Bêta')}
+      ${betaSelectC145('c145-statut','Statut',betaStatesC145,l.statut||'Sollicitée')}
+      <label class="c145-field"><span>Attentes pour cette œuvre</span><textarea id="c145-attentes" rows="4">${betaEscC145(l.attentes)}</textarea></label>
+      <div class="c145-dates">${betaInputC145('c145-sollicitation','Date de sollicitation',l.date_sollicitation,'date')}${betaInputC145('c145-envoi','Date d’envoi',l.date_envoi,'date')}${betaInputC145('c145-retour-attendu','Retour attendu',l.date_retour_attendu,'date')}${betaInputC145('c145-relance','Relance prévue',l.date_relance,'date')}${betaInputC145('c145-reception','Date de réception',l.date_reception,'date')}</div>
+      ${betaInputC145('c145-lien-retour','Lien du document de retour',l.lien_retour,'url')}
+      ${betaInputC145('c145-lien-devis','Lien du devis (si professionnel)',l.lien_devis,'url')}
+      <div class="c145-actions"><button class="btn-primary" onclick="betaSaveLinkC145('${id||''}')">Enregistrer</button>${id?`<button class="tiny-btn" onclick="betaDeleteLinkC145('${id}')">Retirer de cette œuvre</button>`:''}</div></div>`);
+    document.getElementById('c145-contact').value=l.contact_id||'';
+  }
+  async function betaSaveLinkC145(id){
+    const contact_id=betaValC145('c145-contact');if(!contact_id)return alert('Crée ou sélectionne d’abord un contact dans l’annuaire.');
+    const statut=betaValC145('c145-statut');
+    const payload={user_id:currentUser.id,oeuvre_id:currentOeuvreId,contact_id,type_lecture:betaValC145('c145-type'),statut,attentes:betaValC145('c145-attentes'),date_sollicitation:betaValC145('c145-sollicitation')||null,date_envoi:betaValC145('c145-envoi')||null,date_retour_attendu:betaValC145('c145-retour-attendu')||null,date_relance:betaValC145('c145-relance')||null,date_reception:betaValC145('c145-reception')||null,lien_retour:betaValC145('c145-lien-retour')||null,lien_devis:betaValC145('c145-lien-devis')||null};
+    const r=id?await db().from('beta_collaborations').update(payload).eq('id',id).eq('user_id',currentUser.id):await db().from('beta_collaborations').insert(payload);
+    if(r.error)return alert(r.error.message);
+    closeDrawer();renderOeuvreBetaC145(document.getElementById('oeuvre-tab-content'));
+  }
+  async function betaDeleteLinkC145(id){
+    if(!confirm('Retirer cette collaboration de cette œuvre ? La fiche contact et les autres collaborations seront conservées.'))return;
+    const r=await db().from('beta_collaborations').delete().eq('id',id).eq('user_id',currentUser.id);
+    if(r.error)return alert(r.error.message);closeDrawer();renderOeuvreBetaC145(document.getElementById('oeuvre-tab-content'));
+  }
+  async function renderAnnuaireBetaC145(zone){
+    zone.innerHTML='<div class="status-line">Chargement de l’annuaire…</div>';
+    try{await betaLoadC145()}catch(e){zone.innerHTML=`<div class="panel"><h3>Configuration nécessaire</h3><p>${betaEscC145(e.message)}</p><p>Exécute le SQL C145 dans Supabase Test avant utilisation.</p></div>`;return}
+    zone.innerHTML=`<div class="panel"><div class="head-row"><div><h2>Annuaire des Alpha & Bêta</h2><p>Un contact unique, plusieurs œuvres et des devis propres à chaque collaboration.</p></div><button class="btn-primary" onclick="betaEditContactC145()">＋ Nouveau contact</button></div><div class="c145-table-wrap"><table class="ch-table"><thead><tr><th>Pseudo</th><th>E-mail</th><th>Type</th><th>Pro</th><th>Œuvres</th></tr></thead><tbody>${betaContactsC145.map(c=>{const links=betaLinksC145.filter(l=>l.contact_id===c.id);return `<tr class="c145-click" onclick="betaShowContactC145('${c.id}')"><td><strong>${betaEscC145(c.pseudo)}</strong></td><td>${betaEscC145(c.email)}</td><td>${[...new Set(links.map(l=>l.type_lecture))].join(', ')||'—'}</td><td>${c.pro?'✓':'—'}</td><td>${links.length}</td></tr>`}).join('')||'<tr><td colspan="5">Aucun contact enregistré.</td></tr>'}</tbody></table></div></div>`;
+  }
+  function betaShowContactC145(id){
+    const c=betaContactC145(id);if(!c)return;
+    const links=betaLinksC145.filter(l=>l.contact_id===id);
+    openDrawer('Fiche lecteur·rice',`<div class="c145-drawer"><h2>${betaEscC145(c.pseudo)}</h2><p>${c.pro?'✓ Professionnel·le':'Alpha / Bêta bénévole'}</p><p><strong>E-mail :</strong> ${betaEscC145(c.email)||'—'}</p><p>${betaEscC145(c.notes)}</p><h3>Œuvres accompagnées</h3>${links.map(l=>`<div class="c145-work"><strong>${betaEscC145(betaWorkC145(l.oeuvre_id))}</strong><div>${betaEscC145(l.type_lecture)} · ${betaEscC145(l.statut)}</div><small>Retour attendu : ${betaDateC145(l.date_retour_attendu)} · Relance : ${betaDateC145(l.date_relance)}</small>${l.lien_retour?`<p><a target="_blank" rel="noopener" href="${betaEscC145(betaSafeUrlC145(l.lien_retour))}">Document de retour ↗</a></p>`:''}${c.pro&&l.lien_devis?`<p><a target="_blank" rel="noopener" href="${betaEscC145(betaSafeUrlC145(l.lien_devis))}">Devis ↗</a></p>`:''}</div>`).join('')||'<p>Aucune œuvre associée.</p>'}<button class="btn-primary" onclick="betaEditContactC145('${id}')">Modifier la fiche</button></div>`);
+  }
+  function betaEditContactC145(id){
+    const c=betaContactC145(id)||{};
+    openDrawer('Contact éditorial',`<div class="c145-drawer"><h2>${id?'Modifier':'Créer'} un contact</h2>${betaInputC145('c145-pseudo','Pseudo',c.pseudo)}${betaInputC145('c145-email','E-mail',c.email,'email')}<label class="c145-field"><span>Notes</span><textarea id="c145-notes" rows="4">${betaEscC145(c.notes)}</textarea></label><label class="c145-check"><input type="checkbox" id="c145-pro" ${c.pro?'checked':''}> Professionnel·le</label><div class="c145-actions"><button class="btn-primary" onclick="betaSaveContactC145('${id||''}')">Enregistrer le contact</button></div></div>`);
+  }
+  async function betaSaveContactC145(id){
+    const pseudo=betaValC145('c145-pseudo').trim();if(!pseudo)return alert('Le pseudo est obligatoire.');
+    const payload={user_id:currentUser.id,pseudo,email:betaValC145('c145-email').trim()||null,notes:betaValC145('c145-notes')||null,pro:document.getElementById('c145-pro').checked};
+    const r=id?await db().from('beta_contacts').update(payload).eq('id',id).eq('user_id',currentUser.id):await db().from('beta_contacts').insert(payload);
+    if(r.error)return alert(r.error.message);
+    closeDrawer();await betaLoadC145();
+    const z=document.getElementById('be-tab-content');if(z&&document.getElementById('betab-annuaire-beta')?.classList.contains('active'))renderAnnuaireBetaC145(z);
+    else if(document.getElementById('oeuvre-tab-content'))renderOeuvreBetaC145(document.getElementById('oeuvre-tab-content'));
+  }
 
 </script>
 
