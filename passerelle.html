@@ -1823,6 +1823,9 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
 #work-character-gallery .work-character-card-c92 label,
 #work-character-gallery .work-character-card-c92 .character-importance-control {display:none!important}
 </style>
+<style id="c146-horizon-style">
+.c146-wrap{display:grid;grid-template-columns:minmax(0,3fr) minmax(250px,1fr);gap:18px;align-items:start}.c146-panel,.c146-tile{background:var(--card-bg,#fff);border:1px solid var(--border,#e4dce5);border-radius:14px;padding:15px}.c146-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}.c146-controls button,.c146-btn{padding:8px 12px;border-radius:9px;border:1px solid #b6a9c3;background:transparent;color:inherit;cursor:pointer}.c146-controls button.active,.c146-btn.primary{background:#776091;color:white}.c146-card{border:1px solid #d7cddd;border-radius:10px;padding:12px;margin:8px 0;cursor:pointer;background:rgba(155,126,184,.07)}.c146-card.active{outline:2px solid #8e70ad}.c146-card[draggable="true"]{cursor:grab}.c146-bar{height:9px;border-radius:8px;background:#e9e2ef;overflow:hidden;margin-top:7px}.c146-bar>span{display:block;height:100%;background:#9876b5}.c146-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px;margin:14px 0}.c146-month{font-size:10px;text-align:center;min-width:0}.c146-track{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:2px;min-height:34px;margin:6px 0;align-items:stretch}.c146-slot{border:1px dashed #d3c8da;border-radius:5px;min-height:28px;cursor:pointer}.c146-slot.filled{background:#aa92c4;border-style:solid}.c146-slot.done{background:#85ae9c}.c146-slot.selected{outline:2px solid #6e508d}.c146-input{width:100%;padding:8px;border:1px solid #d4c8d9;border-radius:7px;background:var(--card-bg,#fff);color:inherit;box-sizing:border-box}.c146-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.c146-fields label{font-size:12px;display:block}.c146-fields input,.c146-fields select{margin-top:4px}.c146-muted{opacity:.7;font-size:12px}.c146-realized{border-left:4px solid #85ae9c}.c146-error{color:#b34545}.c146-drop{min-height:40px;border:1px dashed #b6a9c3;padding:10px;border-radius:10px}.c146-notice{padding:10px;background:rgba(170,146,196,.13);border-radius:8px;font-size:12px}@media(max-width:850px){.c146-wrap{grid-template-columns:1fr}.c146-grid,.c146-track{overflow-x:auto}}
+</style>
 </head>
 <body>
 
@@ -1961,7 +1964,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
       {key:'oeuvres',label:'Œuvres',real:true},{key:'oeuvres-saga',label:'Œuvres saga',real:true},{key:'poesie',label:'Recueils de poésie',real:true},
       {key:'sagas',label:'Univers',real:true},{key:'personnages',label:'Personnages',real:true}
     ]},
-    {group:'Pilotage',items:[{key:'bureau-editorial',label:'Bureau éditorial',real:true},{key:'archives',label:'Archives',real:true}]},
+    {group:'Pilotage',items:[{key:'bureau-editorial',label:'Bureau éditorial',real:true},{key:'horizon-c146',label:'Horizon',real:true},{key:'archives',label:'Archives',real:true}]},
     {group:'Atelier',items:[{key:'planning',label:'Planning',real:true},{key:'idees',label:'Pépinière',real:true}]},
     {group:'Administration',items:[{key:'administration',label:'Administration',real:true}]}
   ];
@@ -2167,6 +2170,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     if (key === 'relecture') renderRelecture();
     if (key === 'planning') renderPlanning();
     if (key === 'bureau-editorial') renderBureauEditorial();
+    if (key === 'horizon-c146') renderHorizonC146();
     if (key === 'archives') renderArchives();
     if (key === 'poesie') renderPoesie();
     if (key === 'administration') renderAdministration();
@@ -5064,7 +5068,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
   const BE_TABS = [
     { key:'catalogue', label:'Catalogue' },
     { key:'destinations', label:'Destinations' },
-    { key:'niveau', label:'Cibles éditoriales' },
+    { key:'selection-c146', label:'Sélection annuelle' },
     { key:'annuaire-beta', label:'Annuaire des bêta' },
   ];
   let beData = [];
@@ -5154,7 +5158,7 @@ border:1px solid var(--line)!important;background:#fff!important;border-radius:9
     const zone=document.getElementById('be-tab-content');
     if(key==='catalogue') renderBeCatalogue(zone);
     if(key==='destinations') renderBeGroupe(zone,'destination_editoriale',DESTINATIONS,true);
-    if(key==='niveau') renderBeGroupe(zone,'niveau_editorial_cible',NIVEAUX,false);
+    if(key==='selection-c146') renderSelectionC146(zone);
     if(key==='annuaire-beta') renderAnnuaireBetaC145(zone);
   }
 
@@ -10698,5 +10702,71 @@ async function deleteLinkedRelationLiam(id,otherId){if(!confirm('Supprimer cette
  try{await liamUpdateRelPair(id,otherId,(a,b)=>[a.filter(x=>x.personnage_id!==otherId),b.filter(x=>x.personnage_id!==id)]);openCharacterDetailV573(id,'relations')}catch(e){alert(e.message)}
 }
 </script>
+
+<script id="c146-horizon-js">
+// C146 : projection volontaire, indépendante du planning et du Kanban.
+const C146_STATUSES_DONE=['V1 terminée','V1.5 à faire','V1.5 en cours','V1.5 terminée','V2 à écrire','V2 en cours','V2 à terminer','V2 terminée'];
+let c146Year=new Date().getFullYear()+1,c146View='year',c146Slice=0,c146Works=[],c146Projects=[],c146Plans=[],c146Selected=null,c146Settings=null;
+function c146Esc(v){return safeText(v??'')}
+function c146IsDone(p){return p.phase==='V1'&&C146_STATUSES_DONE.includes(c146Works.find(w=>w.id===p.oeuvre_id)?.statut_editorial_actuel)}
+function c146Rate(p){return Math.max(.1,Number(p.chapitres_par_session)||1)}
+function c146Remaining(p){return Math.max(0,Number(p.chapitres_actuels||0)-Number(p.chapitres_ecrits||0))/c146Rate(p)}
+function c146Forecast(p){return Math.ceil(Number(p.sessions_realisees||0)+c146Remaining(p))}
+function c146Range(){if(c146View==='year')return [0,11];if(c146View==='half')return [c146Slice*6,c146Slice*6+5];return [c146Slice*3,c146Slice*3+2]}
+function c146Label(m){return ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'][m]}
+function c146PlanCount(id){return c146Plans.filter(x=>x.oeuvre_id===id).length}
+async function c146Load(){
+ const [w,p,pl,st]=await Promise.all([
+  db().from('oeuvres').select('id,titre,statut_editorial_actuel,horizon_annee,archive').eq('archive',false).order('titre'),
+  db().from('horizon_projections').select('*').eq('annee',c146Year).order('created_at'),
+  db().from('plans').select('id,oeuvre_id,ordre'),
+  db().from('horizon_parametres').select('*').eq('annee',c146Year).maybeSingle()
+ ]);
+ if(w.error)throw w.error;if(p.error)throw p.error;if(pl.error)throw pl.error;if(st.error)throw st.error;
+ c146Works=w.data||[];c146Projects=p.data||[];c146Plans=pl.data||[];
+ c146Settings=st.data||{annee:c146Year,semaines_actives:45,semaines_off:7,semaines_tampon:1,sessions_hebdo:4};
+ // Importer les sélections du Bureau éditorial sans écraser les projections déjà personnalisées.
+ const missing=c146Works.filter(x=>Number(x.horizon_annee)===c146Year&&!c146Projects.some(p=>p.oeuvre_id===x.id));
+ if(missing.length){
+  const payload=missing.map(w=>({user_id:currentUser.id,annee:c146Year,oeuvre_id:w.id,phase:'V1',format_oeuvre:'roman_long',chapitres_initiaux:c146PlanCount(w.id),chapitres_actuels:c146PlanCount(w.id),chapitres_ecrits:0,sessions_realisees:0,chapitres_par_session:1,mois_debut:null,mois_fin:null,etat:'active'}));
+  const add=await db().from('horizon_projections').insert(payload).select('*');if(add.error)throw add.error;c146Projects.push(...(add.data||[]));
+ }
+}
+async function renderHorizonC146(){
+ const el=document.getElementById('content');el.innerHTML='<div class="status-line">Chargement de votre Horizon…</div>';
+ try{await c146Load();c146Draw()}catch(e){el.innerHTML=`<h2>Horizon</h2><div class="c146-notice c146-error">${c146Esc(e.message)}<p>La migration SQL C146 doit être exécutée dans Supabase avant d'utiliser Horizon.</p></div>`}
+}
+function c146Draw(){
+ const el=document.getElementById('content');if(!el)return;
+ const all=c146Projects.filter(p=>p.etat!=='retire');const done=all.filter(c146IsDone),active=all.filter(p=>!c146IsDone(p));
+ const total=Number(c146Settings.semaines_actives||45)*Number(c146Settings.sessions_hebdo||4)-Number(c146Settings.semaines_tampon||0)*Number(c146Settings.sessions_hebdo||4);
+ const load=all.reduce((v,p)=>v+(c146IsDone(p)?Number(p.sessions_realisees||0):c146Forecast(p)),0);
+ const range=c146Range();const months=Array.from({length:range[1]-range[0]+1},(_,i)=>i+range[0]);
+ const projectRow=p=>{const w=c146Works.find(x=>x.id===p.oeuvre_id);const finished=c146IsDone(p);return `<div class="c146-card ${c146Selected===p.id?'active':''} ${finished?'c146-realized':''}" draggable="${!finished}" ondragstart="c146Drag(event,'${p.id}')" onclick="c146Choose('${p.id}')"><strong>${c146Esc(w?.titre||'Œuvre indisponible')}</strong><div class="c146-muted">${c146Esc(p.phase)} · ${finished?'✓ Réalisation':c146Esc(w?.statut_editorial_actuel||'Statut non défini')} · ${p.chapitres_actuels||0} chap.</div><div class="c146-muted">${p.sessions_realisees||0} sessions saisies · ${finished?0:Math.ceil(c146Remaining(p))} estimées restantes</div><div class="c146-bar"><span style="width:${Math.min(100,100*Number(p.chapitres_ecrits||0)/Math.max(1,Number(p.chapitres_actuels||0)))}%"></span></div><div class="c146-track" style="grid-template-columns:repeat(${months.length},minmax(0,1fr))">${months.map(m=>`<div title="${c146Label(m)} : cliquer pour positionner le début" class="c146-slot ${p.mois_debut!=null&&p.mois_fin!=null&&m>=p.mois_debut&&m<=p.mois_fin?'filled':''} ${finished?'done':''}" onclick="event.stopPropagation();c146SetMonth('${p.id}',${m})" ondragover="event.preventDefault()" ondrop="c146Drop(event,'${p.id}',${m})"></div>`).join('')}</div></div>`};
+ el.innerHTML=`<div class="be-title-row"><div><h2>🧭 Horizon ${c146Year}</h2><p>Une projection vivante, jamais une obligation.</p></div><button class="c146-btn" onclick="navigate('bureau-editorial');setTimeout(()=>showBeTab('selection-c146'),200)">Sélectionner les œuvres ↗</button></div>
+ <div class="c146-controls"><label>Année <input class="c146-input" style="width:90px" type="number" min="2000" max="2100" value="${c146Year}" onchange="c146Year=Number(this.value);c146Selected=null;renderHorizonC146()"></label>${[['year','Annuel'],['half','Semestriel'],['quarter','Trimestriel']].map(([v,l])=>`<button class="${c146View===v?'active':''}" onclick="c146View='${v}';c146Slice=0;c146Draw()">${l}</button>`).join('')}${c146View!=='year'?`<button onclick="c146Slice=Math.max(0,c146Slice-1);c146Draw()">◀</button><span>${c146View==='half'?'Semestre':'Trimestre'} ${c146Slice+1}</span><button onclick="c146Slice=Math.min(${c146View==='half'?1:3},c146Slice+1);c146Draw()">▶</button>`:''}</div>
+ <div class="c146-notice">Capacité prudente : <strong>${total} sessions</strong> · Charge projetée et réalisée : <strong>${load}</strong> · Marge indicative : <strong>${total-load}</strong>. Les sessions de relecture se répartissent librement dans les périodes.</div>
+ <div class="c146-wrap" style="margin-top:14px"><section class="c146-panel"><div class="c146-grid" style="grid-template-columns:repeat(${months.length},minmax(0,1fr))">${months.map(m=>`<div class="c146-month">${c146Label(m)}</div>`).join('')}</div><h3>Œuvres envisagées</h3>${active.length?active.map(projectRow).join(''):'<p class="c146-muted">Sélectionne des œuvres dans le Bureau éditorial pour commencer.</p>'}<h3>✓ Réalisations</h3>${done.length?done.map(projectRow).join(''):'<p class="c146-muted">Les œuvres dont la V1 est terminée apparaîtront ici, sans disparaître de ton Horizon.</p>'}<details><summary>Œuvres retirées de la projection</summary>${c146Projects.filter(p=>p.etat==='retire').map(p=>`<div class="c146-card">${c146Esc(c146Works.find(w=>w.id===p.oeuvre_id)?.titre||'Œuvre')} <button class="c146-btn" onclick="c146Restore('${p.id}')">Réintégrer</button></div>`).join('')||'<p class="c146-muted">Aucune.</p>'}</details></section><aside class="c146-panel" id="c146-detail">${c146Detail()}</aside></div>`;
+}
+function c146Choose(id){c146Selected=id;c146Draw()}
+function c146Detail(){const p=c146Projects.find(p=>p.id===c146Selected);if(!p)return '<h3>État des lieux</h3><p class="c146-muted">Clique sur une œuvre pour consulter et ajuster sa projection.</p><p class="c146-muted">Les chiffres ne changent que lorsque tu les enregistres.</p>'+c146SettingsHtml();
+ const w=c146Works.find(w=>w.id===p.oeuvre_id);const count=c146PlanCount(p.oeuvre_id);const done=c146IsDone(p);
+ return `<h3>${c146Esc(w?.titre||'Œuvre')}</h3><p class="c146-muted">Statut officiel : ${c146Esc(w?.statut_editorial_actuel||'Non défini')} ${done?'· ✓ Écriture V1 terminée':''}</p><div class="c146-notice">Plan actuel : ${count} chapitres. Estimation initiale : ${p.chapitres_initiaux} chapitres. <button class="c146-btn" onclick="c146RefreshPlan('${p.id}')">Actualiser depuis le plan</button></div><form onsubmit="event.preventDefault();c146SaveProject('${p.id}')"><div class="c146-fields"><label>Format<select id="c146-format" class="c146-input"><option value="nouvelle" ${p.format_oeuvre==='nouvelle'?'selected':''}>Nouvelle</option><option value="roman_court" ${p.format_oeuvre==='roman_court'?'selected':''}>Roman court</option><option value="roman_long" ${p.format_oeuvre==='roman_long'?'selected':''}>Roman long</option></select></label><label>Phase<select id="c146-phase" class="c146-input"><option value="V1" ${p.phase==='V1'?'selected':''}>Écriture V1</option><option value="V1.5" ${p.phase==='V1.5'?'selected':''}>Relecture V1.5</option><option value="V2" ${p.phase==='V2'?'selected':''}>Relecture V2</option></select></label><label>Chapitres estimés<input id="c146-chapters" class="c146-input" type="number" min="0" value="${p.chapitres_actuels||0}"></label><label>Chapitres écrits / traités<input id="c146-written" class="c146-input" type="number" min="0" value="${p.chapitres_ecrits||0}"></label><label>Sessions déjà effectuées<input id="c146-sessions" class="c146-input" type="number" min="0" value="${p.sessions_realisees||0}"></label><label>Chapitres par session<input id="c146-rate" class="c146-input" type="number" min="0.1" step="0.1" value="${c146Rate(p)}"></label><label>Début (mois)<select id="c146-start" class="c146-input"><option value="">À placer</option>${Array.from({length:12},(_,i)=>`<option value="${i}" ${p.mois_debut===i?'selected':''}>${c146Label(i)}</option>`).join('')}</select></label><label>Fin (mois)<select id="c146-end" class="c146-input"><option value="">À placer</option>${Array.from({length:12},(_,i)=>`<option value="${i}" ${p.mois_fin===i?'selected':''}>${c146Label(i)}</option>`).join('')}</select></label></div><p class="c146-muted">Restant estimé : ${done?0:Math.ceil(c146Remaining(p))} sessions · Total réestimé : ${c146Forecast(p)}. Aucun plafond.</p><button type="submit" class="c146-btn primary" style="margin-top:12px">Enregistrer l'état des lieux</button></form><div class="c146-controls"><button class="c146-btn" onclick="c146Remove('${p.id}')">Retirer de cet Horizon</button></div><button class="c146-btn" onclick="c146AddPhase('${p.oeuvre_id}')">＋ Ajouter une phase de relecture</button><p class="c146-muted">Le statut se modifie uniquement dans le Bureau éditorial. Les projections retirées restent récupérables.</p>`;
+}
+function c146SettingsHtml(){return `<h4>Capacité annuelle</h4><div class="c146-fields"><label>Semaines productives<input class="c146-input" id="c146-weeks" type="number" min="0" max="52" value="${c146Settings.semaines_actives}"></label><label>Semaines off<input class="c146-input" id="c146-off" type="number" min="0" max="52" value="${c146Settings.semaines_off}"></label><label>Semaines tampon<input class="c146-input" id="c146-buffer" type="number" min="0" max="52" value="${c146Settings.semaines_tampon}"></label><label>Sessions / semaine<input class="c146-input" id="c146-weekly" type="number" min="1" max="14" value="${c146Settings.sessions_hebdo}"></label></div><button class="c146-btn" onclick="c146SaveSettings()">Enregistrer la capacité</button>`}
+async function c146SaveSettings(){const weeks=+document.getElementById('c146-weeks').value,off=+document.getElementById('c146-off').value,buffer=+document.getElementById('c146-buffer').value,weekly=+document.getElementById('c146-weekly').value;if([weeks,off,buffer,weekly].some(x=>!Number.isInteger(x)||x<0)||weeks+off>52||buffer>weeks||weekly<1)return alert('Vérifie les semaines et la marge de sécurité.');try{const r=await db().from('horizon_parametres').upsert({user_id:currentUser.id,annee:c146Year,semaines_actives:weeks,semaines_off:off,semaines_tampon:buffer,sessions_hebdo:weekly},{onConflict:'user_id,annee'});if(r.error)throw r.error;await renderHorizonC146()}catch(e){alert(e.message)}}
+async function c146SaveProject(id){const p=c146Projects.find(x=>x.id===id);if(!p)return;const n=id=>+document.getElementById(id).value;const start=document.getElementById('c146-start').value,end=document.getElementById('c146-end').value;const patch={format_oeuvre:document.getElementById('c146-format').value,phase:document.getElementById('c146-phase').value,chapitres_actuels:n('c146-chapters'),chapitres_ecrits:n('c146-written'),sessions_realisees:n('c146-sessions'),chapitres_par_session:n('c146-rate'),mois_debut:start===''?null:+start,mois_fin:end===''?null:+end};if([patch.chapitres_actuels,patch.chapitres_ecrits,patch.sessions_realisees].some(v=>!Number.isInteger(v)||v<0)||!(patch.chapitres_par_session>0)||(patch.mois_debut!=null&&patch.mois_fin!=null&&patch.mois_fin<patch.mois_debut))return alert('Vérifie les valeurs et les dates.');try{const r=await db().from('horizon_projections').update(patch).eq('id',id).eq('user_id',currentUser.id);if(r.error)throw r.error;await renderHorizonC146();c146Selected=id;c146Draw()}catch(e){alert(e.message)}}
+async function c146Patch(id,patch){try{const r=await db().from('horizon_projections').update(patch).eq('id',id).eq('user_id',currentUser.id);if(r.error)throw r.error;await renderHorizonC146();c146Selected=id;c146Draw()}catch(e){alert(e.message)}}
+function c146RefreshPlan(id){const p=c146Projects.find(p=>p.id===id);if(!p)return;const count=c146PlanCount(p.oeuvre_id);if(confirm(`Actualiser l'estimation à ${count} chapitres ? L'estimation initiale sera conservée.`))c146Patch(id,{chapitres_actuels:count})}
+function c146Remove(id){if(confirm('Retirer cette œuvre de la projection ? Elle restera dans le catalogue et pourra être réintégrée.'))c146Patch(id,{etat:'retire'})}
+function c146Restore(id){c146Patch(id,{etat:'active'})}
+function c146Drag(e,id){e.dataTransfer.setData('text/plain',id)}
+function c146Drop(e,id,m){e.preventDefault();const dragged=e.dataTransfer.getData('text/plain');if(dragged&&dragged!==id)return; c146SetMonth(id,m)}
+function c146SetMonth(id,m){const p=c146Projects.find(x=>x.id===id);if(!p||c146IsDone(p))return;const duration=p.mois_debut!=null&&p.mois_fin!=null?Math.max(0,p.mois_fin-p.mois_debut):0;c146Patch(id,{mois_debut:m,mois_fin:Math.min(11,m+duration)})}
+async function c146AddPhase(oeuvreId){const phase=prompt('Phase à projeter : V1.5 ou V2','V1.5');if(!['V1.5','V2'].includes(phase))return;const existing=c146Projects.find(p=>p.oeuvre_id===oeuvreId&&p.phase===phase);if(existing){c146Selected=existing.id;c146Draw();return;}const p=c146Projects.find(p=>p.oeuvre_id===oeuvreId);if(!p)return;try{const r=await db().from('horizon_projections').insert({user_id:currentUser.id,annee:c146Year,oeuvre_id:oeuvreId,phase,format_oeuvre:p.format_oeuvre,chapitres_initiaux:p.chapitres_actuels,chapitres_actuels:p.chapitres_actuels,chapitres_ecrits:0,sessions_realisees:0,chapitres_par_session:1,etat:'active'}).select('id').single();if(r.error)throw r.error;await renderHorizonC146();c146Selected=r.data.id;c146Draw()}catch(e){alert(e.message)}}
+async function renderSelectionC146(zone){if(!zone)return;const year=new Date().getFullYear()+1;zone.innerHTML=`<h3>Œuvres · Sélection annuelle</h3><p class="c146-muted">Choisis l'année de projection dans la fiche éditoriale de chaque œuvre, ou utilise les sélecteurs ci-dessous. Les statuts éditoriaux restent inchangés.</p><div class="c146-controls"><label>Année <input id="c146-selection-year" class="c146-input" type="number" min="2000" max="2100" value="${year}" style="width:110px" ></label><button class="c146-btn" onclick="c146Year=+document.getElementById('c146-selection-year').value;navigate('horizon-c146')">Ouvrir Horizon</button></div><div id="c146-selection-list">${beData.map(w=>`<div class="c146-card"><strong>${c146Esc(w.titre)}</strong><div class="c146-muted">${c146Esc(w.statut_editorial_actuel||'Statut non défini')} · ${w.horizon_annee?`Horizon ${w.horizon_annee}`:'Non sélectionnée'}</div><button class="c146-btn" onclick="c146AssignYear('${w.id}',+document.getElementById('c146-selection-year').value)">Sélectionner pour l'année</button> ${w.horizon_annee?`<button class="c146-btn" onclick="c146AssignYear('${w.id}',null)">Désélectionner</button>`:''}</div>`).join('')}</div>`}
+async function c146AssignYear(id,year){try{if(year!=null&&(!Number.isInteger(year)||year<2000||year>2100))throw Error('Année invalide');const r=await db().from('oeuvres').update({horizon_annee:year}).eq('id',id).eq('user_id',currentUser.id);if(r.error)throw r.error;const w=beData.find(x=>x.id===id);if(w)w.horizon_annee=year;renderSelectionC146(document.getElementById('be-tab-content'))}catch(e){alert(e.message)}}
+</script>
+
 </body>
 </html>
